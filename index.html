@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Control System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 900px; margin: 20px auto; background: #f4f7f9; padding: 15px; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #1a73e8; }
+        
+        input { padding: 12px; margin: 8px 0 18px 0; width: 100%; box-sizing: border-box; border: 2px solid #bdc1c6; border-radius: 6px; font-size: 16px; }
+        label { font-weight: bold; color: #3c4043; }
+        
+        /* Navigation Tabs */
+.tabs { 
+    display: flex; 
+    margin-bottom: 25px; 
+    gap: 10px; 
+    border-bottom: 2px solid #ddd; 
+}
+
+.tab { 
+    padding: 12px 24px; 
+    cursor: pointer; 
+    color: #5f6368; 
+    font-weight: 500; 
+    display: flex;       /* Added to align icon and text */
+    align-items: center; /* Centers items vertically */
+    gap: 8px;            /* Space between icon and text */
+    transition: 0.2s;
+}
+
+.tab .material-icons {
+    font-size: 20px;     /* Adjust icon size */
+}
+.tab.active { 
+    color: #1a73e8; 
+    border-bottom: 3px solid #1a73e8; 
+    font-weight: bold; 
+}
+.tab.active .material-icons {
+    color: #1a73e8;
+}
+        
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+
+        button { background: #1a73e8; color: white; padding: 14px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
+        .btn-issue { background: #d93025; }
+        .btn-excel { background: #1d6f42; }
+        .btn-clear { background: #6c757d; margin-top: 5px; }
+
+        .result-box { border: 2px solid #1a73e8; padding: 20px; background: #f8fbff; margin-top: 20px; border-radius: 8px; animation: fadeIn 0.3s; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #dadce0; padding: 10px; text-align: left; }
+        th { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Warehouse Management System - Factory 05</h2>
+
+    <div class="tabs">
+    <div class="tab active" onclick="switchTab('issue-tab', event)">
+        <span class="material-icons">outbound</span>
+        ISSUE ITEM
+    </div>
+    <div class="tab" onclick="switchTab('receive-tab', event)">
+        <span class="material-icons">add_circle</span>
+        ADD STOCK
+    </div>
+    <div class="tab" onclick="switchTab('report-tab', event)">
+        <span class="material-icons">assessment</span>
+        REPORTS
+    </div>
+</div>
+    <div id="issue-tab" class="content-section active">
+        <label>Search Part Number:</label>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="searchPartNo" placeholder="Enter Part No..." onkeypress="handleSearchKeyPress(event)">
+            <button style="width: 150px;" onclick="searchItem()">SEARCH</button>
+        </div>
+
+        <div id="searchResult" class="result-box" style="display:none;">
+            <div class="grid-2">
+                <div><strong>Description:</strong> <br><span id="resDesc"></span></div>
+                <div style="text-align:right;"><strong>Available Stock:</strong> <br><span id="resStock" style="font-size:24px; color:green; font-weight:bold;"></span></div>
+            </div>
+            <p><strong>Model:</strong> <span id="resModel"></span></p>
+            <hr style="border:1px solid #e1e4e8; margin: 15px 0;">
+            
+            <div class="grid-2">
+                <div><label>Emp No:</label><input type="text" id="issueEmp" class="issue-input"></div>
+                <div><label>Machine No:</label><input type="text" id="issueMachine" class="issue-input"></div>
+            </div>
+            <div class="grid-2">
+                <div><label>Dept:</label><input type="text" id="issueDept" class="issue-input"></div>
+                <div><label>Qty to Issue:</label><input type="number" id="issueQty" class="issue-input" value="1"></div>
+            </div>
+            
+            <button class="btn-issue" onclick="issueItem()">SUBMIT ISSUE</button>
+            <button class="btn-clear" onclick="resetIssueTab()">CANCEL / CLEAR DATA</button>
+        </div>
+    </div>
+
+    <div id="receive-tab" class="content-section">
+        <div style="border: 2px dashed #ccc; padding: 20px; text-align: center; margin-bottom: 20px; border-radius: 8px; background: #fafafa;">
+            <h3>Bulk Import from Excel</h3>
+            <input type="file" id="excelFile" accept=".xlsx, .xls" style="border:none;">
+            <button class="btn-excel" onclick="importFromExcel()">UPLOAD & SYNC EXCEL</button>
+        </div>
+
+        <h3>Add Single Item Manually</h3>
+        <label>Part Number:</label><input type="text" id="newPartNo">
+        <div class="grid-2">
+            <div><label>Model:</label><input type="text" id="newModel"></div>
+            <div><label>Description:</label><input type="text" id="newDesc"></div>
+        </div>
+        <label>Quantity:</label><input type="number" id="newQty" value="1">
+        <button onclick="receiveItem()">SAVE TO DATABASE</button>
+    </div>
+
+    <div id="report-tab" class="content-section">
+        <div class="grid-2">
+            <div><label>From:</label><input type="date" id="startDate"></div>
+            <div><label>To:</label><input type="date" id="endDate"></div>
+        </div>
+        <button onclick="loadReport()">GENERATE REPORT</button>
+        <button class="btn-excel" onclick="exportToExcel()">DOWNLOAD EXCEL REPORT</button>
+        <table id="reportTable">
+            <thead>
+                <tr><th>Date</th><th>Part No</th><th>Emp</th><th>Machine</th><th>Dept</th><th>Qty</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // PASTE YOUR FIREBASE CONFIG HERE
+      const firebaseConfig = {
+  apiKey: "AIzaSyDD-j_7VC20v4mNFmfdpEGk0yIErDF8Pv8",
+  authDomain: "inventory-system-5356c.firebaseapp.com",
+  projectId: "inventory-system-5356c",
+  storageBucket: "inventory-system-5356c.firebasestorage.app",
+  messagingSenderId: "691647241868",
+  appId: "1:691647241868:web:3ac4c43e1a7d11b71ba5a9",
+  measurementId: "G-D4VWJD23ND"
+};
+
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // --- HELPER: RESET ISSUE TAB ---
+    window.resetIssueTab = () => {
+        document.getElementById('searchPartNo').value = "";
+        document.getElementById('searchResult').style.display = "none";
+        // Clear all inputs inside the issue box
+        document.querySelectorAll('.issue-input').forEach(input => {
+            input.value = input.type === 'number' ? "1" : "";
+        });
+        window.activePart = null;
+    };
+
+    window.handleSearchKeyPress = (e) => {
+        if(e.key === 'Enter') searchItem();
+    };
+
+    // --- SEARCH ---
+    window.searchItem = async () => {
+        const pNo = document.getElementById('searchPartNo').value.trim().toUpperCase();
+        if(!pNo) return;
+
+        const snap = await getDoc(doc(db, "inventory", pNo));
+        if(snap.exists()){
+            const data = snap.data();
+            document.getElementById('searchResult').style.display = "block";
+            document.getElementById('resDesc').innerText = data.description;
+            document.getElementById('resModel').innerText = data.model;
+            document.getElementById('resStock').innerText = data.current_stock;
+            window.activePart = pNo;
+        } else { 
+            alert("Part Number not found in system."); 
+            resetIssueTab();
+        }
+    };
+
+    // --- ISSUE ---
+    window.issueItem = async () => {
+        const iQty = parseInt(document.getElementById('issueQty').value);
+        const emp = document.getElementById('issueEmp').value.trim();
+        const dept = document.getElementById('issueDept').value.trim();
+
+        if(!emp || !dept || isNaN(iQty)) return alert("Please fill all details!");
+
+        const docRef = doc(db, "inventory", window.activePart);
+        const snap = await getDoc(docRef);
+        
+        if(snap.data().current_stock < iQty) return alert("Insufficient Stock! Current: " + snap.data().current_stock);
+
+        try {
+            await updateDoc(docRef, { current_stock: snap.data().current_stock - iQty });
+            await addDoc(collection(db, "transactions"), {
+                part_number: window.activePart,
+                emp: emp,
+                machine: document.getElementById('issueMachine').value.trim(),
+                dept: dept,
+                qty_issued: iQty,
+                date: Timestamp.now()
+            });
+            alert("Success: Item Issued.");
+            resetIssueTab(); // Automatically clear everything after success
+        } catch (e) { alert("Error: " + e.message); }
+    };
+
+    // --- MANUAL RECEIVE ---
+    window.receiveItem = async () => {
+        const pNo = document.getElementById('newPartNo').value.trim().toUpperCase();
+        const qty = parseInt(document.getElementById('newQty').value);
+        if(!pNo || isNaN(qty)) return alert("Part Number and Quantity required.");
+
+        const docRef = doc(db, "inventory", pNo);
+        const docSnap = await getDoc(docRef);
+        if(docSnap.exists()){
+            await updateDoc(docRef, { current_stock: docSnap.data().current_stock + qty });
+        } else {
+            await setDoc(docRef, { 
+                part_number: pNo, 
+                model: document.getElementById('newModel').value.trim(), 
+                description: document.getElementById('newDesc').value.trim(), 
+                current_stock: qty 
+            });
+        }
+        alert("Stock Added.");
+        document.getElementById('newPartNo').value = "";
+        document.getElementById('newModel').value = "";
+        document.getElementById('newDesc').value = "";
+    };
+
+    // --- EXCEL IMPORT ---
+    window.importFromExcel = () => {
+        const file = document.getElementById('excelFile').files[0];
+        if(!file) return alert("Select a file");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            for(let row of jsonData) {
+                const pNo = String(row.PartNo || row.partno || "").trim().toUpperCase();
+                const qty = parseInt(row.Quantity || row.quantity || 0);
+                if(pNo) {
+                    const docRef = doc(db, "inventory", pNo);
+                    const snap = await getDoc(docRef);
+                    if(snap.exists()) await updateDoc(docRef, { current_stock: snap.data().current_stock + qty });
+                    else await setDoc(docRef, { part_number: pNo, model: row.Model||"", description: row.Description||"", current_stock: qty });
+                }
+            }
+            alert("Bulk Import Complete.");
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    // --- REPORT & TABS ---
+    window.loadReport = async () => {
+        const start = new Date(document.getElementById('startDate').value);
+        const end = new Date(document.getElementById('endDate').value);
+        if(isNaN(start) || isNaN(end)) return alert("Select dates.");
+        end.setHours(23,59,59);
+        const q = query(collection(db, "transactions"), where("date", ">=", start), where("date", "<=", end));
+        const snap = await getDocs(q);
+        const tbody = document.querySelector("#reportTable tbody");
+        tbody.innerHTML = "";
+        snap.forEach(d => {
+            const data = d.data();
+            tbody.innerHTML += `<tr>
+                <td>${data.date.toDate().toLocaleDateString()}</td>
+                <td>${data.part_number}</td>
+                <td>${data.emp}</td>
+                <td>${data.machine}</td>
+                <td>${data.dept}</td>
+                <td>${data.qty_issued}</td>
+            </tr>`;
+        });
+    };
+
+    window.exportToExcel = () => XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById("reportTable")), "Inventory_Report.xlsx");
+
+    window.switchTab = (id, e) => {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        e.currentTarget.classList.add('active');
+    };
+</script>
+</body>
+</html>
