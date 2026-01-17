@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Inventory System</title>
+    <title>Smart Inventory System</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', sans-serif; max-width: 950px; margin: 20px auto; background: #f4f7f9; padding: 15px; }
+        body { font-family: 'Segoe UI', sans-serif; max-width: 950px; margin: 20px auto; background: #f0f2f5; padding: 15px; }
         .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
         
         /* Input Styling */
@@ -19,156 +19,131 @@
         /* Tabs */
         .tabs { display: flex; margin-bottom: 25px; gap: 10px; border-bottom: 2px solid #ddd; }
         .tab { padding: 12px 20px; cursor: pointer; color: #5f6368; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .tab:hover { background: #f1f3f4; }
-        .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; font-weight: bold; }
+        .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; font-weight: bold; background: #e8f0fe; border-radius: 5px 5px 0 0; }
         
-        /* Layout & Buttons */
-        .content-section { display: none; animation: fadeIn 0.3s; }
-        .content-section.active { display: block; }
+        /* Content & Buttons */
+        .content-section { display: none; }
+        .content-section.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         button { background: #1a73e8; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         button:hover { opacity: 0.9; }
-        
-        .btn-issue { background: #d93025; } /* Red for Issue */
-        .btn-excel { background: #188038; } /* Green for Excel */
-        .btn-stock { background: #007bff; } /* Blue for Current Stock */
-        .btn-history { background: #5f6368; } /* Grey for History */
+        .btn-issue { background: #d93025; }
+        .btn-excel { background: #188038; }
         .btn-clear { background: #e0e0e0; color: #333; }
 
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         
-        .result-box { border: 2px solid #1a73e8; padding: 20px; background: #f8fbff; margin-top: 20px; border-radius: 8px; }
+        /* Search Results List */
+        .search-list { max-height: 200px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 15px; display: none; }
+        .search-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; background: #fff; }
+        .search-item:hover { background: #f1f3f4; }
+        .search-item strong { color: #1a73e8; }
+
+        .result-box { border: 2px solid #1a73e8; padding: 20px; background: #f8fbff; margin-top: 20px; border-radius: 8px; display: none; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
         th, td { border: 1px solid #dadce0; padding: 10px; text-align: left; }
         th { background: #f1f3f4; color: #333; }
-        tr:nth-child(even) { background-color: #fafafa; }
-        
-        /* Low Stock Alert in Table */
         .low-stock { color: #d93025; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="text-align:center; color:#1a73e8;">Dept. Inventory System</h2>
+    <h2 style="text-align:center; color:#1a73e8;">Advanced Inventory System</h2>
 
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('issue-tab', event)">
-            <span class="material-icons">outbound</span> ISSUE ITEM
-        </div>
-        <div class="tab" onclick="switchTab('receive-tab', event)">
-            <span class="material-icons">add_box</span> ADD STOCK
-        </div>
-        <div class="tab" onclick="switchTab('report-tab', event)">
-            <span class="material-icons">analytics</span> REPORTS
-        </div>
+        <div class="tab active" onclick="switchTab('issue-tab', event)"><span class="material-icons">search</span> FIND & ISSUE</div>
+        <div class="tab" onclick="switchTab('receive-tab', event)"><span class="material-icons">add_box</span> ADD ITEM</div>
+        <div class="tab" onclick="switchTab('report-tab', event)"><span class="material-icons">analytics</span> REPORTS</div>
     </div>
 
     <div id="issue-tab" class="content-section active">
-        <label>Scan or Enter Part Number:</label>
+        <label>Search by Part Name OR Number:</label>
         <div style="display: flex; gap: 10px;">
-            <input type="text" id="searchPartNo" placeholder="Type Part No here..." onkeypress="handleEnter(event)">
-            <button style="width: 120px;" onclick="searchItem()"><span class="material-icons">search</span> FIND</button>
+            <input type="text" id="searchInput" placeholder="Type 'Hook', '9000', or Part No..." onkeyup="liveSearch()">
+            <button style="width: 50px;" onclick="liveSearch()"><span class="material-icons">refresh</span></button>
         </div>
 
-        <div id="searchResult" class="result-box" style="display:none;">
+        <div id="matchesList" class="search-list"></div>
+
+        <div id="selectedItemBox" class="result-box">
             <div class="grid-2">
                 <div>
-                    <small>Description</small><br>
-                    <strong id="resDesc" style="font-size:1.1em;"></strong><br>
-                    <small>Model</small><br>
-                    <span id="resModel"></span>
+                    <small>Selected Item:</small><br>
+                    <strong id="resDesc" style="font-size:1.2em;"></strong><br>
+                    <span id="resModel" style="color:#666;"></span>
                 </div>
                 <div style="text-align:right;">
-                    <small>Current Stock</small><br>
+                    <small>Stock Available</small><br>
                     <span id="resStock" style="font-size:28px; color:green; font-weight:bold;"></span>
                 </div>
             </div>
             <hr style="border:0; border-top:1px solid #cce0ff; margin: 15px 0;">
             
             <div class="grid-3">
-                <div><label>MR No:</label><input type="text" id="issueMR" class="issue-input" placeholder="Req. No"></div>
-                <div><label>Emp No:</label><input type="text" id="issueEmp" class="issue-input" placeholder="E001"></div>
-                <div><label>Machine:</label><input type="text" id="issueMachine" class="issue-input" placeholder="M-01"></div>
+                <div><label>MR No:</label><input type="text" id="issueMR" class="issue-input"></div>
+                <div><label>Emp No:</label><input type="text" id="issueEmp" class="issue-input"></div>
+                <div><label>Machine:</label><input type="text" id="issueMachine" class="issue-input"></div>
             </div>
             <div class="grid-2">
-                <div><label>Department:</label><input type="text" id="issueDept" class="issue-input" placeholder="Sewing/Cutting"></div>
+                <div><label>Dept:</label><input type="text" id="issueDept" class="issue-input"></div>
                 <div><label>Qty:</label><input type="number" id="issueQty" class="issue-input" value="1"></div>
             </div>
             
-            <button class="btn-issue" onclick="issueItem()">
-                <span class="material-icons">send</span> CONFIRM ISSUE
-            </button>
-            <button class="btn-clear" onclick="resetIssueTab()">CANCEL</button>
+            <button class="btn-issue" onclick="issueItem()"><span class="material-icons">outbound</span> CONFIRM ISSUE</button>
+            <button class="btn-clear" onclick="resetSearch()">CANCEL</button>
         </div>
     </div>
 
     <div id="receive-tab" class="content-section">
-        <div style="background:#fafafa; border:2px dashed #ccc; padding:15px; border-radius:8px; margin-bottom:20px; text-align:center;">
-            <h3><span class="material-icons" style="vertical-align:middle;">upload_file</span> Bulk Import</h3>
-            <input type="file" id="excelFile" accept=".xlsx, .xls">
-            <button class="btn-excel" onclick="importFromExcel()">UPLOAD EXCEL</button>
-            <small>Columns: PartNo, Model, Description, Quantity</small>
-        </div>
-
-        <h3>Manual Entry</h3>
-        <label>Part Number:</label><input type="text" id="newPartNo">
+        <h3>Add New Item</h3>
+        <label>Part Number (Leave empty to auto-generate):</label>
+        <input type="text" id="newPartNo" placeholder="e.g. 228-96500">
+        
         <div class="grid-2">
             <div><label>Model:</label><input type="text" id="newModel"></div>
-            <div><label>Description:</label><input type="text" id="newDesc"></div>
+            <div><label>Description:</label><input type="text" id="newDesc" placeholder="e.g. Rotary Hook"></div>
         </div>
         <label>Quantity:</label><input type="number" id="newQty" value="1">
         <button onclick="receiveItem()"><span class="material-icons">save</span> SAVE STOCK</button>
+        
+        <hr>
+        <div style="background:#fafafa; padding:15px; border-radius:8px; text-align:center;">
+            <small>Bulk Upload (Excel)</small><br>
+            <input type="file" id="excelFile" accept=".xlsx, .xls">
+            <button class="btn-excel" onclick="importFromExcel()" style="margin-top:5px;">UPLOAD EXCEL</button>
+        </div>
     </div>
 
     <div id="report-tab" class="content-section">
         <div class="grid-2">
-            <div style="border-right:1px solid #ddd; padding-right:10px;">
-                <h4 style="margin-top:0;">History Report</h4>
-                <div class="grid-2">
-                    <div><label>From:</label><input type="date" id="startDate"></div>
-                    <div><label>To:</label><input type="date" id="endDate"></div>
+            <div>
+                <button class="btn-clear" onclick="loadTransactionReport()"><span class="material-icons">history</span> HISTORY LOG</button>
+                <div class="grid-2" style="margin-top:5px;">
+                    <input type="date" id="startDate"> <input type="date" id="endDate">
                 </div>
-                <button class="btn-history" onclick="loadTransactionReport()">
-                    <span class="material-icons">history</span> VIEW HISTORY
-                </button>
             </div>
-
-            <div style="padding-left:10px;">
-                <h4 style="margin-top:0;">Stock Status</h4>
-                <p style="font-size:0.9em; color:#666;">View all items currently sitting in the warehouse.</p>
-                <button class="btn-stock" onclick="loadCurrentStockReport()">
-                    <span class="material-icons">inventory_2</span> VIEW CURRENT STOCK
-                </button>
+            <div>
+                <button class="btn-excel" onclick="loadCurrentStockReport()"><span class="material-icons">inventory</span> CURRENT STOCK</button>
             </div>
         </div>
-
-        <hr>
-        <button class="btn-excel" onclick="exportToExcel()">
-            <span class="material-icons">file_download</span> DOWNLOAD REPORT AS EXCEL
-        </button>
-
-        <h3 id="reportTitle">Report Output</h3>
+        <button onclick="exportToExcel()" style="margin-top:10px;">DOWNLOAD EXCEL</button>
+        <h4 id="reportTitle">Report Output</h4>
         <div style="overflow-x:auto;">
-            <table id="reportTable">
-                <thead></thead>
-                <tbody></tbody>
-            </table>
+            <table id="reportTable"><thead></thead><tbody></tbody></table>
         </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, query, where, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // ---------------------------------------------------------
-    // !!! PASTE YOUR FIREBASE CONFIG HERE !!!
-    // ---------------------------------------------------------
-    const firebaseConfig = {
+    // --- PASTE FIREBASE CONFIG HERE ---
+   const firebaseConfig = {
 apiKey: "AIzaSyDD-j_7VC20v4mNFmfdpEGk0yIErDF8Pv8",
 authDomain: "inventory-system-5356c.firebaseapp.com",
 projectId: "inventory-system-5356c",
@@ -178,144 +153,188 @@ appId: "1:691647241868:web:3ac4c43e1a7d11b71ba5a9",
 measurementId: "G-D4VWJD23ND"
 };
 
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // --- 1. SEARCH & UI ---
-    window.handleEnter = (e) => { if(e.key === 'Enter') searchItem(); }
-    
-    window.searchItem = async () => {
-        const pNo = document.getElementById('searchPartNo').value.trim().toUpperCase();
-        if(!pNo) return;
+    // GLOBAL VARIABLES
+    let inventoryCache = []; // Stores data locally for fast search
+    let activeDocId = null;  // Stores ID of currently selected item
 
-        const snap = await getDoc(doc(db, "inventory", pNo));
-        if(snap.exists()){
-            const data = snap.data();
-            document.getElementById('searchResult').style.display = "block";
-            document.getElementById('resDesc').innerText = data.description || "-";
-            document.getElementById('resModel').innerText = data.model || "-";
-            document.getElementById('resStock').innerText = data.current_stock;
-            window.activePart = pNo;
+    // --- 1. SMART SEARCH SYSTEM ---
+    
+    // Load data on startup
+    window.onload = async () => { await refreshInventoryCache(); };
+
+    async function refreshInventoryCache() {
+        // Fetches all items once so search is instant
+        const snap = await getDocs(collection(db, "inventory"));
+        inventoryCache = [];
+        snap.forEach(d => {
+            inventoryCache.push({ id: d.id, ...d.data() });
+        });
+        console.log("Inventory Loaded: " + inventoryCache.length + " items");
+    }
+
+    window.liveSearch = () => {
+        const text = document.getElementById('searchInput').value.trim().toUpperCase();
+        const listDiv = document.getElementById('matchesList');
+        listDiv.innerHTML = "";
+        
+        if(text.length < 2) { 
+            listDiv.style.display = "none"; return; 
+        }
+
+        // Filter: Check Part No OR Description (Partial Match)
+        const matches = inventoryCache.filter(item => {
+            const pNo = (item.part_number || "").toUpperCase();
+            const desc = (item.description || "").toUpperCase();
+            const model = (item.model || "").toUpperCase();
+            return pNo.includes(text) || desc.includes(text) || model.includes(text);
+        });
+
+        if(matches.length === 0) {
+            listDiv.style.display = "block";
+            listDiv.innerHTML = "<div class='search-item'>No items found</div>";
         } else {
-            alert("Part not found!");
-            window.resetIssueTab();
+            listDiv.style.display = "block";
+            matches.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'search-item';
+                div.innerHTML = `<strong>${item.part_number || "No Part #"}</strong> - ${item.description} <br><small>${item.model || ""}</small>`;
+                div.onclick = () => selectItem(item);
+                listDiv.appendChild(div);
+            });
         }
     };
 
-    window.resetIssueTab = () => {
-        document.getElementById('searchResult').style.display = "none";
-        document.getElementById('searchPartNo').value = "";
-        document.querySelectorAll('.issue-input').forEach(i => i.value = i.type=='number'?'1':'');
-        window.activePart = null;
+    window.selectItem = (item) => {
+        activeDocId = item.id; // Store the system ID
+        document.getElementById('matchesList').style.display = "none";
+        document.getElementById('selectedItemBox').style.display = "block";
+        
+        document.getElementById('resDesc').innerText = item.description;
+        document.getElementById('resModel').innerText = item.model;
+        document.getElementById('resStock').innerText = item.current_stock;
+        
+        // Populate inputs if needed or clear them
+        document.getElementById('searchInput').value = item.part_number || item.description;
     };
 
-    // --- 2. ISSUE ITEM (With MR No) ---
-    window.issueItem = async () => {
-        const mr = document.getElementById('issueMR').value.trim(); // NEW
-        const emp = document.getElementById('issueEmp').value.trim();
-        const mach = document.getElementById('issueMachine').value.trim();
-        const dept = document.getElementById('issueDept').value.trim();
-        const qty = parseInt(document.getElementById('issueQty').value);
+    window.resetSearch = () => {
+        document.getElementById('matchesList').style.display = "none";
+        document.getElementById('selectedItemBox').style.display = "none";
+        document.getElementById('searchInput').value = "";
+        activeDocId = null;
+        document.querySelectorAll('.issue-input').forEach(i => i.value = i.type=='number'?'1':'');
+    };
 
-        // Validation: MR No is now required
-        if(!mr || !emp || !dept || isNaN(qty)) return alert("Please fill MR No, Emp, Dept and Qty");
+    // --- 2. RECEIVE (Updated for No Part Number) ---
+    window.receiveItem = async () => {
+        let pNo = document.getElementById('newPartNo').value.trim().toUpperCase();
+        const qty = parseInt(document.getElementById('newQty').value);
+        const model = document.getElementById('newModel').value.trim();
+        const desc = document.getElementById('newDesc').value.trim();
 
-        const ref = doc(db, "inventory", window.activePart);
-        const snap = await getDoc(ref);
-        
-        if(snap.data().current_stock < qty) return alert("Not enough stock!");
+        if(!desc || isNaN(qty)) return alert("Description and Quantity are required!");
+
+        // If no Part No, generate a unique ID
+        let docId = pNo;
+        if(!pNo) {
+            docId = "AUTO-" + Date.now(); // Generate ID like AUTO-170494832
+            pNo = ""; // Save as empty string in field
+            alert("No Part Number provided. Generated ID: " + docId);
+        }
 
         try {
-            await updateDoc(ref, { current_stock: snap.data().current_stock - qty });
-            
-            await addDoc(collection(db, "transactions"), {
-                part_number: window.activePart,
-                mr_no: mr,          // Saved to database
-                emp: emp,
-                machine: mach,
-                dept: dept,
-                qty_issued: qty,
-                date: Timestamp.now()
-            });
+            const ref = doc(db, "inventory", docId);
+            const snap = await getDoc(ref);
 
-            alert("Item Issued Successfully!");
-            window.resetIssueTab();
-        } catch (e) { alert("Error: " + e.message); }
+            if(snap.exists()) {
+                await updateDoc(ref, { current_stock: snap.data().current_stock + qty });
+            } else {
+                await setDoc(ref, {
+                    part_number: pNo,
+                    model: model,
+                    description: desc,
+                    current_stock: qty
+                });
+            }
+            alert("Saved Successfully!");
+            refreshInventoryCache(); // Update local list
+            
+            // Clear inputs
+            document.getElementById('newPartNo').value = "";
+            document.getElementById('newDesc').value = "";
+        } catch(e) { alert("Error: " + e.message); }
     };
 
-    // --- 3. ADD / RECEIVE ---
-    window.receiveItem = async () => {
-        const pNo = document.getElementById('newPartNo').value.trim().toUpperCase();
-        const qty = parseInt(document.getElementById('newQty').value);
-        if(!pNo) return;
-
-        const ref = doc(db, "inventory", pNo);
+    // --- 3. ISSUE ITEM ---
+    window.issueItem = async () => {
+        if(!activeDocId) return alert("Please select an item first");
+        
+        const qty = parseInt(document.getElementById('issueQty').value);
+        const ref = doc(db, "inventory", activeDocId);
         const snap = await getDoc(ref);
 
-        if(snap.exists()) {
-            await updateDoc(ref, { current_stock: snap.data().current_stock + qty });
-        } else {
-            await setDoc(ref, {
-                part_number: pNo,
-                model: document.getElementById('newModel').value,
-                description: document.getElementById('newDesc').value,
-                current_stock: qty
-            });
-        }
-        alert("Stock Updated");
-        document.getElementById('newPartNo').value = "";
+        if(snap.data().current_stock < qty) return alert("Low Stock!");
+
+        await updateDoc(ref, { current_stock: snap.data().current_stock - qty });
+        
+        await addDoc(collection(db, "transactions"), {
+            item_id: activeDocId,
+            part_number: snap.data().part_number || "N/A",
+            description: snap.data().description,
+            mr_no: document.getElementById('issueMR').value,
+            emp: document.getElementById('issueEmp').value,
+            machine: document.getElementById('issueMachine').value,
+            dept: document.getElementById('issueDept').value,
+            qty_issued: qty,
+            date: Timestamp.now()
+        });
+
+        alert("Issued!");
+        // Update local cache manually to reflect stock change immediately
+        const cachedItem = inventoryCache.find(i => i.id === activeDocId);
+        if(cachedItem) cachedItem.current_stock -= qty;
+        
+        resetSearch();
     };
 
-    // --- 4. EXCEL IMPORT ---
-    window.importFromExcel = () => {
-        const file = document.getElementById('excelFile').files[0];
-        if(!file) return alert("Select File");
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-            const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            let count = 0;
-            for(let r of data) {
-                const p = String(r.PartNo||r.partno).trim().toUpperCase();
-                const q = parseInt(r.Quantity||r.quantity||0);
-                if(p) {
-                    const ref = doc(db, "inventory", p);
-                    const s = await getDoc(ref);
-                    if(s.exists()) await updateDoc(ref, {current_stock: s.data().current_stock + q});
-                    else await setDoc(ref, {part_number:p, model:r.Model||"", description:r.Description||"", current_stock:q});
-                    count++;
-                }
-            }
-            alert(`Imported ${count} items`);
-        };
-        reader.readAsArrayBuffer(file);
+    // --- 4. REPORTS ---
+    window.loadCurrentStockReport = async () => {
+        document.getElementById('reportTitle').innerText = "Current Stock Report";
+        const tbody = document.querySelector("#reportTable tbody");
+        document.querySelector("#reportTable thead").innerHTML = "<tr><th>Part No</th><th>Desc</th><th>Model</th><th>Stock</th></tr>";
+        tbody.innerHTML = "";
+        
+        // Use cache for speed
+        inventoryCache.forEach(data => {
+            const stockClass = data.current_stock < 5 ? 'low-stock' : '';
+            tbody.innerHTML += `<tr>
+                <td>${data.part_number || 'N/A'}</td>
+                <td>${data.description}</td>
+                <td>${data.model}</td>
+                <td class="${stockClass}">${data.current_stock}</td>
+            </tr>`;
+        });
     };
 
-    // --- 5. REPORTS (HISTORY vs CURRENT STOCK) ---
-    
-    // A. Transaction History Report
     window.loadTransactionReport = async () => {
         const s = document.getElementById('startDate').value;
         const e = document.getElementById('endDate').value;
-        if(!s || !e) return alert("Select dates");
-
-        const start = new Date(s); 
+        if(!s || !e) return alert("Select Dates");
+        
+        const start = new Date(s);
         const end = new Date(e); end.setHours(23,59,59);
-
-        // Fetch Data
+        
         const q = query(collection(db, "transactions"), where("date", ">=", start), where("date", "<=", end));
         const snap = await getDocs(q);
-
-        // Update Headers
-        const thead = document.querySelector("#reportTable thead");
-        thead.innerHTML = `<tr>
-            <th>Date</th><th>MR No</th><th>Part No</th><th>Emp</th><th>Machine</th><th>Dept</th><th>Qty Issued</th>
-        </tr>`;
-
-        // Update Body
+        
+        document.getElementById('reportTitle').innerText = "History Report";
         const tbody = document.querySelector("#reportTable tbody");
+        document.querySelector("#reportTable thead").innerHTML = "<tr><th>Date</th><th>MR</th><th>Part No</th><th>Desc</th><th>Dept</th><th>Qty</th></tr>";
         tbody.innerHTML = "";
-        document.getElementById('reportTitle').innerText = "Transaction History Report";
 
         snap.forEach(d => {
             const data = d.data();
@@ -323,49 +342,43 @@ measurementId: "G-D4VWJD23ND"
                 <td>${data.date.toDate().toLocaleDateString()}</td>
                 <td>${data.mr_no || '-'}</td>
                 <td>${data.part_number}</td>
-                <td>${data.emp}</td>
-                <td>${data.machine}</td>
+                <td>${data.description}</td>
                 <td>${data.dept}</td>
                 <td>${data.qty_issued}</td>
             </tr>`;
         });
-        if(snap.empty) tbody.innerHTML = "<tr><td colspan='7'>No records found</td></tr>";
     };
 
-    // B. Current Stock Report
-    window.loadCurrentStockReport = async () => {
-        const snap = await getDocs(collection(db, "inventory"));
-
-        // Update Headers
-        const thead = document.querySelector("#reportTable thead");
-        thead.innerHTML = `<tr>
-            <th>Part No</th><th>Model</th><th>Description</th><th>Current Stock</th>
-        </tr>`;
-
-        // Update Body
-        const tbody = document.querySelector("#reportTable tbody");
-        tbody.innerHTML = "";
-        document.getElementById('reportTitle').innerText = "Current Stock Report";
-
-        snap.forEach(d => {
-            const data = d.data();
-            // Check for low stock (Less than 5)
-            const stockClass = data.current_stock < 5 ? 'low-stock' : '';
-            
-            tbody.innerHTML += `<tr>
-                <td>${data.part_number}</td>
-                <td>${data.model}</td>
-                <td>${data.description}</td>
-                <td class="${stockClass}">${data.current_stock}</td>
-            </tr>`;
-        });
-    };
-
-    // Common Excel Export (Works for both table views)
     window.exportToExcel = () => {
-        const table = document.getElementById("reportTable");
-        const title = document.getElementById('reportTitle').innerText;
-        XLSX.writeFile(XLSX.utils.table_to_book(table), title + ".xlsx");
+        XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById("reportTable")), "Inventory_Report.xlsx");
+    };
+
+    // EXCEL IMPORT
+    window.importFromExcel = () => {
+        const file = document.getElementById('excelFile').files[0];
+        if(!file) return alert("Select File");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+            const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            for(let r of data) {
+                // If PartNo is empty, use description as ID or generate one? 
+                // For simplicity, we skip items with no PartNo in import, or handle strictly
+                let p = String(r.PartNo||r.partno||"").trim().toUpperCase();
+                let desc = r.Description || r.description || "Imported Item";
+                let qty = parseInt(r.Quantity||r.quantity||0);
+                
+                if(p) {
+                    const ref = doc(db, "inventory", p);
+                    const s = await getDoc(ref);
+                    if(s.exists()) await updateDoc(ref, {current_stock: s.data().current_stock + qty});
+                    else await setDoc(ref, {part_number:p, model:r.Model||"", description:desc, current_stock:qty});
+                }
+            }
+            alert("Import Complete");
+            refreshInventoryCache();
+        };
+        reader.readAsArrayBuffer(file);
     };
 
     window.switchTab = (id, e) => {
