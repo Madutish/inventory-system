@@ -3,380 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Manager Pro</title>
+    <title>Factory Inventory System</title>
+    
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; max-width: 950px; margin: 20px auto; background: #f0f2f5; padding: 15px; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); position: relative; }
-        
-        /* Status Indicator */
-        #status-light { position: absolute; top: 20px; right: 20px; font-weight: bold; font-size: 12px; display: flex; align-items: center; gap: 5px; }
-        .dot { height: 10px; width: 10px; background-color: #bbb; border-radius: 50%; display: inline-block; }
-        .dot.green { background-color: #28a745; box-shadow: 0 0 5px #28a745; }
-        .dot.red { background-color: #dc3545; box-shadow: 0 0 5px #dc3545; }
-
-        /* Tabs */
-        .tabs { display: flex; margin-bottom: 25px; gap: 10px; border-bottom: 2px solid #ddd; }
-        .tab { padding: 12px 20px; cursor: pointer; color: #5f6368; font-weight: 500; display: flex; align-items: center; gap: 8px; }
-        .tab:hover { background: #f1f3f4; }
-        .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; font-weight: bold; background: #e8f0fe; }
-        
-        /* Content & Inputs */
-        .content-section { display: none; }
-        .content-section.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        input { padding: 12px; margin: 5px 0 15px 0; width: 100%; box-sizing: border-box; border: 2px solid #bdc1c6; border-radius: 6px; }
-        input:focus { border-color: #1a73e8; outline: none; background: #f8fbff; }
-        label { font-weight: bold; color: #444; font-size: 13px; }
-
-        /* Buttons */
-        button { background: #1a73e8; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        button:hover { opacity: 0.9; }
-        .btn-issue { background: #d93025; }
-        .btn-excel { background: #188038; }
-        .btn-clear { background: #6c757d; }
-
-        /* Search Results */
-        .search-list { max-height: 200px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 15px; display: none; background: #fff; }
-        .search-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .search-item:hover { background: #f1f3f4; }
-
-        .result-box { border: 2px solid #1a73e8; padding: 20px; background: #f8fbff; margin-top: 20px; border-radius: 8px; display: none; }
-        
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-        th, td { border: 1px solid #dadce0; padding: 10px; text-align: left; }
-        th { background: #f1f3f4; }
-        .low-stock { color: #d93025; font-weight: bold; }
-    </style>
+    <link rel="stylesheet" href="style.css?v=1">
 </head>
 <body>
 
-<div class="container">
-    <div id="status-light"><span class="dot" id="statusDot"></span> <span id="statusText">Connecting...</span></div>
-    <h2 style="text-align:center; color:#1a73e8;">Warehouse System</h2>
+<div class="status-indicator">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">Connecting...</span>
+</div>
 
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('issue-tab', event)"><span class="material-icons">search</span> ISSUE</div>
-        <div class="tab" onclick="switchTab('receive-tab', event)"><span class="material-icons">add_box</span> ADD</div>
-        <div class="tab" onclick="switchTab('report-tab', event)"><span class="material-icons">analytics</span> REPORTS</div>
-    </div>
-
-    <div id="issue-tab" class="content-section active">
-        <label>Search Part Name or Number:</label>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="searchInput" placeholder="Type to search..." onkeyup="liveSearch()">
-            <button style="width: 50px;" onclick="liveSearch()"><span class="material-icons">refresh</span></button>
-        </div>
-
-        <div id="matchesList" class="search-list"></div>
-
-        <div id="selectedItemBox" class="result-box">
-            <div class="grid-2">
-                <div>
-                    <small>Selected:</small><br>
-                    <strong id="resDesc" style="font-size:1.2em;"></strong><br>
-                    <span id="resModel" style="color:#666;"></span>
-                </div>
-                <div style="text-align:right;">
-                    <small>Stock:</small><br>
-                    <span id="resStock" style="font-size:28px; color:green; font-weight:bold;"></span>
-                </div>
-            </div>
-            <hr style="border:0; border-top:1px solid #cce0ff; margin: 15px 0;">
-            
-            <div class="grid-3">
-                <div><label>MR No:</label><input type="text" id="issueMR" class="issue-input"></div>
-                <div><label>Emp:</label><input type="text" id="issueEmp" class="issue-input"></div>
-                <div><label>Machine No:</label><input type="text" id="issueMachine" class="issue-input"></div>
-            </div>
-            <div class="grid-2">
-                <div><label>Dept:</label><input type="text" id="issueDept" class="issue-input"></div>
-                <div><label>Qty:</label><input type="number" id="issueQty" class="issue-input" value="1"></div>
-            </div>
-            
-            <button class="btn-issue" onclick="issueItem()">CONFIRM ISSUE</button>
-            <button class="btn-clear" onclick="resetSearch()">CANCEL</button>
-        </div>
-    </div>
-
-    <div id="receive-tab" class="content-section">
-        <h3>Add New Item</h3>
-        <label>Part Number (Leave empty for Auto-ID):</label>
-        <input type="text" id="newPartNo">
-        <div class="grid-2">
-            <div><label>Model:</label><input type="text" id="newModel"></div>
-            <div><label>Description:</label><input type="text" id="newDesc"></div>
-        </div>
-        <label>Qty:</label><input type="number" id="newQty" value="1">
-        <button onclick="receiveItem()"><span class="material-icons">save</span> SAVE STOCK</button>
+<div id="login-screen">
+    <div class="login-box">
+        <span class="material-icons" style="font-size: 60px; color:#1a73e8; margin-bottom: 10px;">lock_person</span>
+        <h2 style="color:#333; margin: 10px 0 25px 0;">Factory Login</h2>
         
-        <hr>
-        <div style="background:#fafafa; padding:15px; border-radius:8px; text-align:center;">
-            <small>Bulk Upload (Smart Import)</small><br>
-            <input type="file" id="excelFile" accept=".xlsx, .xls">
-            <button class="btn-excel" onclick="importFromExcel()" style="margin-top:5px;">UPLOAD EXCEL</button>
-        </div>
-    </div>
+        <div style="text-align: left; margin-bottom: 5px; font-weight: 600; font-size: 14px; color:#555;">Select Location</div>
+        <select id="factorySelect">
+            <option value="FTY01">FACTORY 01</option>
+            <option value="FTY04">FACTORY 04</option>
+            <option value="FTY05">FACTORY 05</option>
+        </select>
 
-    <div id="report-tab" class="content-section">
-        <div class="grid-2">
-            <div>
-                <button class="btn-clear" onclick="loadTransactionReport()">VIEW HISTORY</button>
-                <div class="grid-2" style="margin-top:5px;">
-                    <input type="date" id="startDate"> <input type="date" id="endDate">
-                </div>
-            </div>
-            <div>
-                <button class="btn-excel" onclick="loadCurrentStockReport()">VIEW CURRENT STOCK</button>
-            </div>
+        <div style="text-align: left; margin-bottom: 5px; margin-top: 15px; font-weight: 600; font-size: 14px; color:#555;">Enter PIN</div>
+        <div class="password-wrapper">
+            <input type="password" id="loginPass" placeholder="••••">
+            <span class="material-icons password-toggle" onclick="togglePass('loginPass', this)">visibility</span>
         </div>
-        <button onclick="exportToExcel()" style="margin-top:10px;">DOWNLOAD EXCEL</button>
-        <h4 id="reportTitle">Report Output</h4>
-        <div style="overflow-x:auto;">
-            <table id="reportTable"><thead></thead><tbody></tbody></table>
-        </div>
+        
+        <button onclick="login()">LOGIN NOW</button>
+        <p id="loginMsg" style="margin-top:15px; font-weight: 500;"></p>
     </div>
 </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    // -------------------------------------------------------------
-    // ⚠️ PASTE YOUR FIREBASE CONFIG KEYS HERE OR IT WON'T WORK ⚠️
-    // -------------------------------------------------------------
-    const firebaseConfig = {
-        apiKey: "AIzaSyDD-j_7VC20v4mNFmfdpEGk0yIErDF8Pv8",
-        authDomain: "inventory-system-5356c.firebaseapp.com",
-        projectId: "inventory-system-5356c",
-        storageBucket: "inventory-system-5356c.firebasestorage.app",
-        messagingSenderId: "691647241868",
-        appId: "1:691647241868:web:3ac4c43e1a7d11b71ba5a9",
-        measurementId: "G-D4VWJD23ND"
-    };
-    // -------------------------------------------------------------
-
-    // System Status Logic
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-    let db; // Declare db globally
-    let inventoryCache = [];
-    let activeDocId = null;
-
-    try {
-        if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-            throw new Error("API Keys missing! Edit the HTML file.");
-        }
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
+<div id="app-container">
+    <div class="container">
         
-        // Test Connection
-        statusText.innerText = "System Online";
-        statusDot.classList.add('green');
-        console.log("Firebase Connected");
-    } catch (e) {
-        console.error(e);
-        statusText.innerText = "Error: Check Console";
-        statusText.style.color = "red";
-        statusDot.classList.add('red');
-        alert("System Error: " + e.message + "\n\nDid you paste your Firebase Keys?");
-    }
+        <div class="header-bar">
+            <div><span class="material-icons" style="vertical-align: sub; color: #1a73e8; margin-right: 5px;">apartment</span> <span class="factory-badge" id="displayFactory"></span></div>
+            <div style="cursor: pointer; color: #d93025; font-weight: 600; display: flex; align-items: center;" onclick="location.reload()">
+                <span class="material-icons" style="margin-right: 5px;">logout</span> Logout
+            </div>
+        </div>
 
-    // --- CACHE & LOAD ---
-    window.onload = async () => { if(db) await refreshInventoryCache(); };
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('issue-tab', event)"><span class="material-icons">outbound</span> ISSUE ITEM</div>
+            <div class="tab" onclick="switchTab('receive-tab', event)"><span class="material-icons">add_box</span> ADD STOCK</div>
+            <div class="tab" onclick="switchTab('report-tab', event)"><span class="material-icons">insights</span> REPORTS</div>
+            <div class="tab" onclick="switchTab('settings-tab', event)"><span class="material-icons">settings</span> SETTINGS</div>
+        </div>
 
-    async function refreshInventoryCache() {
-        try {
-            const snap = await getDocs(collection(db, "inventory"));
-            inventoryCache = [];
-            snap.forEach(d => inventoryCache.push({ id: d.id, ...d.data() }));
-            console.log("Loaded " + inventoryCache.length + " items");
-        } catch(e) { console.error("Load Error:", e); }
-    }
+        <div id="issue-tab" class="content-section active">
+            <label style="font-weight: 600;">Find Part:</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="searchInput" placeholder="Start typing Part No, Description, or Model..." onkeyup="liveSearch()" autocomplete="off">
+                <button class="action-btn" style="width: 60px;" onclick="liveSearch()"><span class="material-icons">search</span></button>
+            </div>
+            <div id="matchesList" class="search-list"></div>
 
-    // --- SEARCH ---
-    window.liveSearch = () => {
-        const text = document.getElementById('searchInput').value.trim().toUpperCase();
-        const listDiv = document.getElementById('matchesList');
-        listDiv.innerHTML = "";
-        
-        if(text.length < 2) { listDiv.style.display = "none"; return; }
-
-        const matches = inventoryCache.filter(item => {
-            const pNo = (item.part_number || "").toUpperCase();
-            const desc = (item.description || "").toUpperCase();
-            const model = (item.model || "").toUpperCase();
-            return pNo.includes(text) || desc.includes(text) || model.includes(text);
-        });
-
-        listDiv.style.display = "block";
-        if(matches.length === 0) {
-            listDiv.innerHTML = "<div class='search-item'>No items found</div>";
-        } else {
-            matches.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'search-item';
-                div.innerHTML = `<strong>${item.part_number || "No Part#"}</strong> - ${item.description}`;
-                div.onclick = () => selectItem(item);
-                listDiv.appendChild(div);
-            });
-        }
-    };
-
-    window.selectItem = (item) => {
-        activeDocId = item.id;
-        document.getElementById('matchesList').style.display = "none";
-        document.getElementById('selectedItemBox').style.display = "block";
-        document.getElementById('resDesc').innerText = item.description;
-        document.getElementById('resModel').innerText = item.model;
-        document.getElementById('resStock').innerText = item.current_stock;
-        document.getElementById('searchInput').value = item.part_number || item.description;
-    };
-
-    window.resetSearch = () => {
-        document.getElementById('matchesList').style.display = "none";
-        document.getElementById('selectedItemBox').style.display = "none";
-        document.getElementById('searchInput').value = "";
-        activeDocId = null;
-        document.querySelectorAll('.issue-input').forEach(i => i.value = i.type=='number'?'1':'');
-    };
-
-    // --- RECEIVE ---
-    window.receiveItem = async () => {
-        let pNo = document.getElementById('newPartNo').value.trim().toUpperCase();
-        const qty = parseInt(document.getElementById('newQty').value);
-        const model = document.getElementById('newModel').value.trim();
-        const desc = document.getElementById('newDesc').value.trim();
-
-        if(!desc || isNaN(qty)) return alert("Description and Qty required");
-        
-        // Auto ID if PartNo empty
-        let docId = pNo || "AUTO-" + Date.now();
-
-        try {
-            const ref = doc(db, "inventory", docId);
-            const snap = await getDoc(ref);
-
-            if(snap.exists()) await updateDoc(ref, { current_stock: snap.data().current_stock + qty });
-            else await setDoc(ref, { part_number: pNo, model: model, description: desc, current_stock: qty });
-
-            alert("Saved!");
-            await refreshInventoryCache();
-            document.getElementById('newPartNo').value = "";
-            document.getElementById('newDesc').value = "";
-        } catch(e) { alert("Error: " + e.message); }
-    };
-
-    // --- ISSUE ---
-    window.issueItem = async () => {
-        if(!activeDocId) return alert("Select item first");
-        const qty = parseInt(document.getElementById('issueQty').value);
-        
-        const ref = doc(db, "inventory", activeDocId);
-        const snap = await getDoc(ref);
-
-        if(snap.data().current_stock < qty) return alert("Low Stock!");
-
-        await updateDoc(ref, { current_stock: snap.data().current_stock - qty });
-        await addDoc(collection(db, "transactions"), {
-            item_id: activeDocId,
-            part_number: snap.data().part_number,
-            description: snap.data().description,
-            mr_no: document.getElementById('issueMR').value,
-            emp: document.getElementById('issueEmp').value,
-            machine: document.getElementById('issueMachine').value,
-            dept: document.getElementById('issueDept').value,
-            qty_issued: qty,
-            date: Timestamp.now()
-        });
-
-        alert("Issued Successfully!");
-        
-        // Update local cache immediately so numbers are correct without refresh
-        const cachedItem = inventoryCache.find(i => i.id === activeDocId);
-        if(cachedItem) cachedItem.current_stock -= qty;
-
-        resetSearch();
-    };
-
-    // --- SMART EXCEL IMPORT ---
-    window.importFromExcel = () => {
-        const file = document.getElementById('excelFile').files[0];
-        if(!file) return alert("Select File");
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-                const rawData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                let count = 0;
+            <div id="selectedItemBox" class="result-box">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <div>
+                        <div style="font-size: 13px; color: #1a73e8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Selected Item</div>
+                        <div id="resDesc" style="font-size: 18px; font-weight: 600; color: #333; margin-top: 5px;"></div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 13px; color: #666;">Current Stock</div>
+                        <div id="resStock" style="font-size: 32px; color: #28a745; font-weight: 800; line-height: 1;"></div>
+                    </div>
+                </div>
                 
-                for(let row of rawData) {
-                    // Smart Key Matching
-                    let clean = {};
-                    Object.keys(row).forEach(k => clean[k.toLowerCase().replace(/[\s\-_]/g, "")] = row[k]);
-                    
-                    let pNo = String(clean['partno']||clean['pno']||clean['partnumber']||"").trim().toUpperCase();
-                    let desc = clean['description']||clean['desc']||"";
-                    let qty = parseInt(clean['qty']||clean['quantity']||0);
-                    
-                    if((pNo || desc) && !isNaN(qty)) {
-                        let docId = pNo || "AUTO-" + Date.now() + Math.random();
-                        const ref = doc(db, "inventory", docId);
-                        const s = await getDoc(ref);
-                        if(s.exists()) await updateDoc(ref, {current_stock: s.data().current_stock + qty});
-                        else await setDoc(ref, {part_number: pNo, model: clean['model']||"", description: desc, current_stock: qty});
-                        count++;
-                    }
-                }
-                alert(`Imported ${count} items.`);
-                await refreshInventoryCache();
-            } catch(e) { alert("Excel Error: " + e.message); }
-        };
-        reader.readAsArrayBuffer(file);
-    };
+                <div class="grid-2">
+                    <div><label style="font-weight: 600;">MR No:</label><input type="text" id="issueMR" placeholder="Required"></div>
+                    <div><label style="font-weight: 600;">Employee ID:</label><input type="text" id="issueEmp" placeholder="Required"></div>
+                </div>
+                <div class="grid-2">
+                    <div><label style="font-weight: 600;">Department:</label><input type="text" id="issueDept" placeholder="Required"></div>
+                    <div><label style="font-weight: 600;">Issue Quantity:</label><input type="number" id="issueQty" value="1" min="1" style="font-size: 18px; font-weight: bold;"></div>
+                </div>
+                <div style="display: flex; gap: 15px; margin-top: 25px;">
+                    <button class="action-btn" style="background:#d93025; flex: 2; padding: 15px;" onclick="issueItem()"><span class="material-icons">outbound</span> CONFIRM ISSUE</button>
+                    <button class="action-btn" style="background:white; color:#555; border: 2px solid #ddd; flex: 1;" onclick="resetSearch()">CANCEL</button>
+                </div>
+            </div>
+        </div>
 
-    // --- REPORTING ---
-    window.loadCurrentStockReport = async () => {
-        document.getElementById('reportTitle').innerText = "Current Stock";
-        const tbody = document.querySelector("#reportTable tbody");
-        document.querySelector("#reportTable thead").innerHTML = "<tr><th>Part No</th><th>Desc</th><th>Model</th><th>Stock</th></tr>";
-        tbody.innerHTML = "";
-        inventoryCache.forEach(d => {
-            const cls = d.current_stock < 5 ? 'low-stock' : '';
-            tbody.innerHTML += `<tr><td>${d.part_number||'N/A'}</td><td>${d.description}</td><td>${d.model}</td><td class="${cls}">${d.current_stock}</td></tr>`;
-        });
-    };
+        <div id="receive-tab" class="content-section">
+            <div style="background: #f8fbff; padding: 25px; border-radius: 12px; border: 1px solid #e0e0e0;">
+                <h3 style="margin-top: 0; color: #1a73e8;">Add Single Item</h3>
+                <div class="grid-2">
+                    <div><label style="font-weight: 600;">Part Number:</label><input type="text" id="newPartNo" placeholder="Leave blank for auto-ID"></div>
+                    <div><label style="font-weight: 600;">Model / Machine:</label><input type="text" id="newModel" placeholder="e.g., DDL-9000"></div>
+                </div>
+                <div><label style="font-weight: 600;">Description:</label><input type="text" id="newDesc" placeholder="Item Name / Spec"></div>
+                <div style="width: 50%;"><label style="font-weight: 600;">Quantity to Add:</label><input type="number" id="newQty" value="1" min="1" style="font-size: 18px; font-weight: bold;"></div>
+                <button class="action-btn" style="background: #28a745; margin-top: 10px; width: 100%; padding: 15px;" onclick="receiveItem()"><span class="material-icons">add_circle</span> ADD TO STOCK</button>
+            </div>
 
-    window.loadTransactionReport = async () => {
-        const s = document.getElementById('startDate').value;
-        const e = document.getElementById('endDate').value;
-        if(!s || !e) return alert("Select Dates");
-        const q = query(collection(db, "transactions"), where("date", ">=", new Date(s)), where("date", "<=", new Date(e + "T23:59:59")));
-        const snap = await getDocs(q);
-        document.getElementById('reportTitle').innerText = "History Report";
-        const tbody = document.querySelector("#reportTable tbody");
-        document.querySelector("#reportTable thead").innerHTML = "<tr><th>Date</th><th>MR</th><th>Part No</th><th>Desc</th><th>Dept</th><th>Qty</th></tr>";
-        tbody.innerHTML = "";
-        snap.forEach(d => {
-            const data = d.data();
-            tbody.innerHTML += `<tr><td>${data.date.toDate().toLocaleDateString()}</td><td>${data.mr_no||'-'}</td><td>${data.part_number}</td><td>${data.description}</td><td>${data.dept}</td><td>${data.qty_issued}</td></tr>`;
-        });
-    };
+            <div style="margin-top: 30px; text-align: center; padding: 30px; border: 2px dashed #ccc; border-radius: 12px;">
+                 <span class="material-icons" style="font-size: 40px; color: #1a73e8; display: block; margin-bottom: 10px;">cloud_upload</span>
+                <h3 style="margin: 0 0 15px 0; color: #555;">Bulk Import from Excel</h3>
+                <input type="file" id="excelFile" accept=".xlsx" style="border: none; background: transparent; padding: 0; margin-bottom: 15px;">
+                <button class="action-btn" style="background:#1a73e8; padding: 12px 30px;" onclick="importFromExcel()"><span class="material-icons">upload_file</span> PROCESS FILE</button>
+                <p style="font-size: 13px; color: #888; margin-top: 10px;">Columns needed: PartNo, Desc, Model, Qty</p>
+            </div>
+        </div>
 
-    window.exportToExcel = () => XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById("reportTable")), "Report.xlsx");
-    window.switchTab = (id, e) => {
-        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        e.currentTarget.classList.add('active');
-    };
-</script>
+        <div id="report-tab" class="content-section">
+            <div class="grid-2">
+                <div>
+                    <label style="font-weight: 600;">Date Range:</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="date" id="startDate" style="margin: 0;">
+                        <input type="date" id="endDate" style="margin: 0;">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="action-btn" style="flex:1; background: #1a73e8;" onclick="loadTransactionReport()"><span class="material-icons">history</span> VIEW HISTORY</button>
+                    <button class="action-btn" style="flex:1; background: #28a745;" onclick="loadCurrentStockReport()"><span class="material-icons">inventory_2</span> CURRENT STOCK</button>
+                </div>
+            </div>
+
+            <div class="report-container">
+                <div id="reportLoading" class="loading-msg" style="display:none;"><span class="material-icons spin" style="vertical-align: middle; margin-right: 8px;">sync</span>Loading data...</div>
+                <div style="overflow-x:auto;">
+                    <table id="reportTable">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="noDataMsg" class="no-data-msg" style="display:none;">No records found for the selected criteria.</div>
+            </div>
+
+             <div style="text-align: right; margin-top: 15px;">
+                <button class="action-btn" onclick="exportToExcel()" style="background: #0d47a1;"><span class="material-icons">file_download</span> DOWNLOAD REPORT EXCEL</button>
+            </div>
+        </div>
+
+        <div id="settings-tab" class="content-section">
+            <div style="padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+                <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px;"><span class="material-icons" style="color: #d93025;">security</span> Security Settings</h3>
+                <p>Change the login PIN for <strong id="settingFactoryName" style="color: #1a73e8;"></strong></p>
+                
+                <label style="font-weight: 600; margin-top: 20px;">Current PIN:</label>
+                <div class="password-wrapper">
+                    <input type="password" id="oldPass" placeholder="Enter current PIN">
+                    <span class="material-icons password-toggle" onclick="togglePass('oldPass', this)">visibility</span>
+                </div>
+                
+                <label style="font-weight: 600;">New PIN:</label>
+                <div class="password-wrapper">
+                    <input type="password" id="newPass" placeholder="Enter new 4-digit PIN">
+                    <span class="material-icons password-toggle" onclick="togglePass('newPass', this)">visibility</span>
+                </div>
+                <button class="action-btn" onclick="changePassword()" style="margin-top: 15px; padding: 15px; width: 100%;"><span class="material-icons">lock_reset</span> UPDATE PIN</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script type="module" src="script.js?v=1"></script>
+
 </body>
 </html>
-
