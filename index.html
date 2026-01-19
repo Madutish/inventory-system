@@ -8,7 +8,66 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
-    <link rel="stylesheet" href="style.css?v=1">
+    <style>
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #eef2f5; margin: 0; padding: 0; color: #333; }
+
+        /* SYSTEM STATUS LIGHT */
+        .status-indicator { position: fixed; top: 15px; right: 15px; background: rgba(255, 255, 255, 0.98); padding: 8px 15px; border-radius: 30px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #eee; }
+        .dot { height: 10px; width: 10px; background-color: #bbb; border-radius: 50%; display: inline-block; }
+        .dot.green { background-color: #28a745; box-shadow: 0 0 6px #28a745; }
+        .dot.red { background-color: #dc3545; box-shadow: 0 0 6px #dc3545; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        /* LOGIN SCREEN */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1a73e8, #0d47a1); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; text-align: center; width: 340px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .login-box select, .password-wrapper input { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 15px; transition: 0.3s; }
+        .login-box select:focus, .password-wrapper input:focus { border-color: #1a73e8; outline: none; }
+        .login-box button { width: 100%; padding: 14px; background: #1a73e8; color: white; border: none; font-weight: 700; cursor: pointer; border-radius: 8px; margin-top: 15px; font-size: 16px; transition: 0.2s; }
+        .login-box button:hover { background: #155db1; }
+        .password-wrapper { position: relative; width: 100%; margin-bottom: 15px; }
+        .password-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; }
+
+        /* APP CONTAINER */
+        #app-container { display: none; max-width: 1000px; margin: 30px auto; padding: 15px; }
+        .container { background: white; padding: 35px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .factory-badge { background: #e8f0fe; color: #1a73e8; padding: 6px 18px; border-radius: 20px; font-weight: 700; letter-spacing: 0.5px; }
+
+        /* TABS */
+        .tabs { display: flex; margin-bottom: 30px; gap: 15px; border-bottom: 2px solid #f0f0f0; }
+        .tab { padding: 12px 25px; cursor: pointer; color: #777; font-weight: 600; display: flex; align-items: center; gap: 8px; border-radius: 8px 8px 0 0; transition: 0.2s; }
+        .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; background: #f8fbff; }
+        .tab:hover:not(.active) { background: #f5f5f5; color: #333; }
+
+        /* CONTENT & FORMS */
+        .content-section { display: none; animation: fadeIn 0.25s ease-out; }
+        .content-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        input[type="text"], input[type="number"], input[type="date"] { padding: 12px; margin: 5px 0 15px 0; width: 100%; box-sizing: border-box; border: 2px solid #e0e0e0; border-radius: 8px; font-family: inherit; }
+        input:focus { border-color: #1a73e8; outline: none; }
+        
+        button.action-btn { background: #1a73e8; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; font-size: 14px; }
+        button.action-btn:hover { filter: brightness(90%); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: end; }
+
+        /* SEARCH & RESULTS */
+        .result-box { border: 2px solid #1a73e8; padding: 25px; background: #f8fbff; margin-top: 25px; border-radius: 12px; display: none; }
+        .search-list { max-height: 250px; overflow-y: auto; border: 1px solid #eee; display: none; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .search-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; background: #fff; transition: 0.1s; }
+        .search-item:hover { background: #f0f7ff; color: #1a73e8; }
+
+        /* REPORTS TABLE */
+        .report-container { margin-top: 25px; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; }
+        th { background: #1a73e8; color: white; padding: 16px 15px; text-align: left; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 13px; }
+        td { padding: 14px 15px; border-bottom: 1px solid #eee; color: #444; }
+        tr:nth-child(even) { background-color: #f8fbff; }
+        tr:hover { background-color: #eef2f5; transition: 0.2s; }
+        .no-data-msg { padding: 30px; text-align: center; color: #777; font-style: italic; background: white; }
+        .loading-msg { padding: 30px; text-align: center; color: #1a73e8; font-weight: bold; background: white; }
+    </style>
 </head>
 <body>
 
@@ -167,7 +226,438 @@
     </div>
 </div>
 
-<script type="module" src="script.js?v=1"></script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    // ============================================
+    // FIREBASE KEYS (PRE-FILLED)
+    // ============================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyDD-j_7VC20v4mNFmfdpEGk0yIErDF8Pv8",
+        authDomain: "inventory-system-5356c.firebaseapp.com",
+        projectId: "inventory-system-5356c",
+        storageBucket: "inventory-system-5356c.firebasestorage.app",
+        messagingSenderId: "691647241868",
+        appId: "1:691647241868:web:3ac4c43e1a7d11b71ba5a9",
+        measurementId: "G-D4VWJD23ND"
+    };
+
+    // SYSTEM STATUS INDICATORS
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    let db; 
+
+    try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        statusDot.className = "dot green";
+        statusText.innerText = "System Ready";
+    } catch (e) {
+        console.error(e);
+        statusDot.className = "dot red";
+        statusText.innerText = "Connection Failed";
+        alert("CRITICAL ERROR: " + e.message);
+    }
+
+    // GLOBAL VARIABLES
+    let activeFactory = ""; 
+    let inventoryCache = [];
+    let activeItem = null;
+
+    // HELPER: Format Date nicely
+    function formatDate(timestamp) {
+        if (!timestamp) return '-';
+        const date = timestamp.toDate();
+        return date.toLocaleDateString();
+    }
+
+    // INIT: Set default dates to today
+    window.addEventListener('DOMContentLoaded', (event) => {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
+    });
+
+    // --- 0. PASSWORD TOGGLE ---
+    window.togglePass = (inputId, iconElement) => {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+            input.type = "text";
+            iconElement.innerText = "visibility_off";
+        } else {
+            input.type = "password";
+            iconElement.innerText = "visibility";
+        }
+    };
+
+    // --- ENABLE "ENTER" KEY FOR LOGIN ---
+    document.getElementById("loginPass").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            login();
+        }
+    });
+
+    // --- 1. SECURE LOGIN ---
+    window.login = async () => {
+        const factory = document.getElementById('factorySelect').value;
+        const pass = document.getElementById('loginPass').value.trim();
+        const msg = document.getElementById('loginMsg');
+
+        if(!pass) { msg.innerText = "Enter PIN"; msg.style.color = "red"; return; }
+        if(!db) { msg.innerText = "Database Offline"; msg.style.color = "red"; return; }
+        
+        msg.innerText = "Verifying..."; msg.style.color = "#666";
+        
+        try {
+            const credRef = doc(db, "credentials", factory);
+            const credSnap = await getDoc(credRef);
+            
+            let validPassword = "1234"; // DEFAULT
+            if(credSnap.exists()) validPassword = credSnap.data().pin;
+
+            if(pass === validPassword) {
+                activeFactory = factory;
+                document.getElementById('login-screen').style.display = "none";
+                document.getElementById('app-container').style.display = "block";
+                document.getElementById('displayFactory').innerText = activeFactory;
+                document.getElementById('settingFactoryName').innerText = activeFactory;
+                refreshInventoryCache(); 
+            } else {
+                msg.innerText = "Incorrect PIN"; msg.style.color = "red";
+            }
+        } catch(e) {
+            console.error(e);
+            msg.innerText = "Connection Error!"; msg.style.color = "red";
+        }
+    };
+
+    // --- 2. CHANGE PASSWORD ---
+    window.changePassword = async () => {
+        const oldP = document.getElementById('oldPass').value.trim();
+        const newP = document.getElementById('newPass').value.trim();
+        if(!oldP || !newP) return alert("Please fill in all fields");
+        if(newP.length < 4) return alert("New PIN must be at least 4 digits");
+
+        const credRef = doc(db, "credentials", activeFactory);
+        const credSnap = await getDoc(credRef);
+        let currentDbPass = "1234"; 
+        if(credSnap.exists()) currentDbPass = credSnap.data().pin;
+        
+        if(oldP !== currentDbPass) return alert("Current PIN is incorrect");
+        
+        await setDoc(credRef, { pin: newP });
+        alert("PIN Successfully Updated!");
+        document.getElementById('oldPass').value = "";
+        document.getElementById('newPass').value = "";
+    };
+
+    // --- 3. DATA LOADING ---
+    async function refreshInventoryCache() {
+        const q = query(collection(db, "inventory"), where("factory_id", "==", activeFactory));
+        const snap = await getDocs(q);
+        inventoryCache = [];
+        snap.forEach(d => inventoryCache.push({ ...d.data(), docId: d.id }));
+    }
+
+    // --- 4. SEARCH (Shows Model in List) ---
+    window.liveSearch = () => {
+        const text = document.getElementById('searchInput').value.trim().toUpperCase();
+        const list = document.getElementById('matchesList');
+        list.innerHTML = "";
+        if(text.length < 2) { list.style.display = "none"; return; }
+
+        const matches = inventoryCache.filter(i => 
+            (i.part_number||"").includes(text) || 
+            (i.description||"").toUpperCase().includes(text) ||
+            (i.model||i.Model||i.machine||"").toUpperCase().includes(text)
+        );
+
+        list.style.display = "block";
+        if(matches.length === 0) list.innerHTML = "<div class='search-item' style='color:#999;'>No matching items found</div>";
+        else matches.forEach(i => {
+            const d = document.createElement('div');
+            d.className = 'search-item';
+            
+            const modelVal = i.model || i.Model || i.machine || "";
+            const modelText = modelVal ? `<span style='color:#666; font-size:0.9em;'> [${modelVal}]</span>` : "";
+            
+            d.innerHTML = `<div style="font-weight:bold; color:#1a73e8;">${i.part_number}</div><div>${i.description}${modelText}</div>`;
+            
+            d.onclick = () => selectItem(i);
+            list.appendChild(d);
+        });
+    };
+
+    // --- 5. SELECT ITEM ---
+    window.selectItem = (i) => {
+        activeItem = i;
+        document.getElementById('matchesList').style.display = "none";
+        document.getElementById('selectedItemBox').style.display = "block";
+        
+        const pNo = i.part_number || "---";
+        const desc = i.description || "---";
+        const model = i.model || i.Model || i.machine || ""; 
+
+        // DISPLAY FORMAT: "Model Part# | Desc"
+        let displayText = `${pNo} | ${desc}`;
+        if(model) {
+            displayText = `${model} ${pNo} | ${desc}`;
+        }
+        
+        document.getElementById('resDesc').innerText = displayText;
+        document.getElementById('resStock').innerText = i.current_stock;
+        document.getElementById('issueQty').max = i.current_stock;
+    };
+
+    window.resetSearch = () => {
+        document.getElementById('selectedItemBox').style.display = "none";
+        document.getElementById('matchesList').style.display = "none";
+        document.getElementById('searchInput').value = "";
+        activeItem = null;
+    };
+
+    // --- 6. TRANSACTIONS ---
+    window.receiveItem = async () => {
+        let pNo = document.getElementById('newPartNo').value.trim().toUpperCase();
+        const qty = parseInt(document.getElementById('newQty').value);
+        if(qty <= 0 || isNaN(qty)) return alert("Invalid Quantity");
+
+        if(!pNo) pNo = "GEN-" + Date.now();
+        const compositeId = `${activeFactory}_${pNo}`;
+
+        const ref = doc(db, "inventory", compositeId);
+        const snap = await getDoc(ref);
+        
+        const modelVal = document.getElementById('newModel').value.trim();
+        const descVal = document.getElementById('newDesc').value.trim();
+
+        if(snap.exists()) {
+             await updateDoc(ref, { current_stock: snap.data().current_stock + qty });
+        } else {
+             if(!descVal) return alert("Description is required for new items.");
+             await setDoc(ref, { 
+                part_number: pNo, factory_id: activeFactory, 
+                model: modelVal, 
+                description: descVal, 
+                current_stock: qty 
+            });
+        }
+        alert("Stock Added Successfully!"); 
+        document.getElementById('newPartNo').value = "";
+        document.getElementById('newModel').value = "";
+        document.getElementById('newDesc').value = "";
+        document.getElementById('newQty').value = "1";
+        refreshInventoryCache();
+    };
+
+    window.issueItem = async () => {
+        if(!activeItem) return alert("Please select an item first");
+        const qty = parseInt(document.getElementById('issueQty').value);
+        const mr = document.getElementById('issueMR').value.trim();
+        const emp = document.getElementById('issueEmp').value.trim();
+        const dept = document.getElementById('issueDept').value.trim();
+
+        if(qty <= 0 || isNaN(qty)) return alert("Invalid Quantity");
+        if(!mr || !emp || !dept) return alert("Please fill in all required fields (MR, Emp, Dept)");
+
+        const ref = doc(db, "inventory", activeItem.docId);
+        const snap = await getDoc(ref);
+        
+        if(!snap.exists()) return alert("Item not found related to this factory.");
+        if(snap.data().current_stock < qty) return alert("Insufficient Stock!");
+
+        await updateDoc(ref, { current_stock: snap.data().current_stock - qty });
+        await addDoc(collection(db, "transactions"), {
+            factory_id: activeFactory, 
+            part_number: activeItem.part_number,
+            description: activeItem.description || "",
+            model: activeItem.model || activeItem.machine || "",
+            mr_no: mr,
+            emp: emp, 
+            dept: dept,
+            qty_issued: qty, 
+            date: Timestamp.now()
+        });
+        alert("Item Issued Successfully!"); 
+        refreshInventoryCache(); 
+        resetSearch();
+        document.getElementById('issueMR').value = "";
+        document.getElementById('issueEmp').value = "";
+        document.getElementById('issueDept').value = "";
+        document.getElementById('issueQty').value = "1";
+    };
+
+    // --- 7. EXCEL IMPORT ---
+    window.importFromExcel = () => {
+        const file = document.getElementById('excelFile').files[0];
+        if(!file) return alert("Select File");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+            const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            let count = 0;
+            
+            for(let row of raw) {
+                let clean = {}; 
+                Object.keys(row).forEach(k => clean[k.toLowerCase().replace(/[\s\-_.]/g, "")] = row[k]);
+                
+                let pNo = String(clean['partno']||clean['pno']||"").trim().toUpperCase();
+                let desc = clean['desc'] || clean['description'] || "";
+                let qty = parseInt(clean['qty']||clean['quantity']||0);
+                let modelVal = clean['model'] || clean['machine'] || ""; 
+
+                if((pNo || desc) && !isNaN(qty) && qty > 0) {
+                    if(!pNo) pNo = "GEN-" + Math.random().toString(36).substr(2,9).toUpperCase();
+                    
+                    const ref = doc(db, "inventory", `${activeFactory}_${pNo}`);
+                    const s = await getDoc(ref);
+                    
+                    if(s.exists()) {
+                        await updateDoc(ref, { current_stock: s.data().current_stock + qty });
+                    } else {
+                        await setDoc(ref, { 
+                            part_number: pNo, 
+                            factory_id: activeFactory, 
+                            description: desc, 
+                            model: modelVal, 
+                            current_stock: qty 
+                        });
+                    }
+                    count++;
+                }
+            }
+            alert(`Successfully processed ${count} items.`); 
+            document.getElementById('excelFile').value = ""; 
+            refreshInventoryCache();
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    // --- 8. REPORTS (FIXED: CLIENT-SIDE FILTERING TO AVOID INDEX ERROR) ---
+    window.loadCurrentStockReport = () => {
+        const tb = document.querySelector("#reportTable tbody"); 
+        const thead = document.querySelector("#reportTable thead");
+        const noData = document.getElementById("noDataMsg");
+        const loading = document.getElementById("reportLoading");
+        
+        loading.style.display = "none";
+
+        if(inventoryCache.length === 0) {
+            tb.innerHTML = "";
+            thead.innerHTML = "";
+            noData.style.display = "block";
+            noData.innerText = "Current stock is empty.";
+            return;
+        }
+
+        noData.style.display = "none";
+        thead.innerHTML = "<tr><th>Part No</th><th>Model</th><th>Description</th><th style='text-align:center;'>In Stock</th></tr>";
+        tb.innerHTML = "";
+        
+        inventoryCache.forEach(d => {
+            const modelVal = d.model || d.machine || '-';
+            const stockStyle = d.current_stock < 5 ? "color:#d93025; font-weight:bold;" : "color:#28a745; font-weight:bold;";
+            tb.innerHTML += `<tr>
+                <td style="font-weight:600;">${d.part_number}</td>
+                <td>${modelVal}</td>
+                <td>${d.description}</td>
+                <td style="text-align:center; font-size:16px; ${stockStyle}">${d.current_stock}</td>
+            </tr>`;
+        });
+    };
+
+    window.loadTransactionReport = async () => {
+        const sVal = document.getElementById('startDate').value;
+        const eVal = document.getElementById('endDate').value;
+        const loading = document.getElementById("reportLoading");
+        const tb = document.querySelector("#reportTable tbody");
+        const thead = document.querySelector("#reportTable thead");
+        const noData = document.getElementById("noDataMsg");
+
+        if(!sVal || !eVal) return alert("Please select both Start and End dates");
+        
+        tb.innerHTML = ""; thead.innerHTML = ""; noData.style.display = "none";
+        loading.style.display = "block";
+
+        try {
+            const startDate = new Date(sVal);
+            const endDate = new Date(eVal);
+            endDate.setHours(23,59,59,999); 
+
+            // STEP 1: Query ONLY by Factory (Bypasses Index Error)
+            const q = query(
+                collection(db, "transactions"), 
+                where("factory_id", "==", activeFactory)
+            );
+
+            const snap = await getDocs(q);
+            loading.style.display = "none";
+
+            if(snap.empty) {
+                noData.style.display = "block";
+                noData.innerText = "No records found.";
+                return;
+            } 
+            
+            // STEP 2: Filter by Date inside JavaScript
+            let docs = [];
+            snap.forEach(d => {
+                const data = d.data();
+                const txDate = data.date.toDate(); // Convert Firestore Timestamp
+                if(txDate >= startDate && txDate <= endDate) {
+                    docs.push(data);
+                }
+            });
+
+            // STEP 3: Check if empty after filtering
+            if(docs.length === 0) {
+                noData.style.display = "block";
+                noData.innerText = "No issue records found for this date range.";
+                return;
+            }
+
+            // STEP 4: Sort Newest First
+            docs.sort((a, b) => b.date.seconds - a.date.seconds);
+
+            // STEP 5: Render
+            thead.innerHTML = "<tr><th>Date</th><th>MR No</th><th>Part Info</th><th>Issued To</th><th>Qty</th></tr>";
+            
+            docs.forEach(v => { 
+                const modelText = v.model ? `[${v.model}] ` : "";
+                tb.innerHTML += `<tr>
+                    <td>${formatDate(v.date)}</td>
+                    <td style="font-weight:600;">${v.mr_no}</td>
+                    <td>${modelText}${v.part_number}<br><small style="color:#666;">${v.description}</small></td>
+                    <td>${v.emp}<br><small style="color:#666;">${v.dept}</small></td>
+                    <td style="text-align:center; font-weight:bold; font-size:15px;">${v.qty_issued}</td>
+                </tr>`; 
+            });
+            
+        } catch (err) {
+             console.error(err);
+             loading.style.display = "none";
+             alert("Error loading report: " + err.message);
+        }
+    };
+
+    window.exportToExcel = () => {
+        const table = document.getElementById("reportTable");
+        if(table.rows.length < 2) return alert("No data to export.");
+        XLSX.writeFile(XLSX.utils.table_to_book(table), `Inventory_Report_${activeFactory}.xlsx`);
+    };
+
+    window.switchTab = (id, e) => {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        e.currentTarget.classList.add('active');
+        if(id !== 'report-tab') {
+             document.querySelector("#reportTable tbody").innerHTML = "";
+             document.querySelector("#reportTable thead").innerHTML = "";
+             document.getElementById("noDataMsg").style.display = "none";
+        }
+    };
+</script>
 </body>
 </html>
