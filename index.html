@@ -3,70 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Factory Inventory System</title>
+    <title>Factory Inventory Pro</title>
     
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #eef2f5; margin: 0; padding: 0; color: #333; }
+        /* --- PROFESSIONAL THEME VARIABLES --- */
+        :root {
+            --primary: #1565c0; /* Enterprise Blue */
+            --primary-dark: #0d47a1;
+            --accent: #ff6f00; /* Amber for actions */
+            --bg-body: #f3f4f6;
+            --bg-card: #ffffff;
+            --text-main: #2c3e50;
+            --text-light: #546e7a;
+            --border: #e0e0e0;
+            --success: #2e7d32;
+            --danger: #c62828;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
 
-        /* SYSTEM STATUS LIGHT */
-        .status-indicator { position: fixed; top: 15px; right: 15px; background: rgba(255, 255, 255, 0.98); padding: 8px 15px; border-radius: 30px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #eee; }
-        .dot { height: 10px; width: 10px; background-color: #bbb; border-radius: 50%; display: inline-block; }
-        .dot.green { background-color: #28a745; box-shadow: 0 0 6px #28a745; }
-        .dot.red { background-color: #dc3545; box-shadow: 0 0 6px #dc3545; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.5; } }
+        body { font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: var(--bg-body); margin: 0; padding: 0; color: var(--text-main); -webkit-font-smoothing: antialiased; }
 
-        /* LOGIN SCREEN */
-        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1a73e8, #0d47a1); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .login-box { background: white; padding: 40px; border-radius: 16px; text-align: center; width: 340px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        .login-box select, .password-wrapper input { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 15px; transition: 0.3s; }
-        .login-box select:focus, .password-wrapper input:focus { border-color: #1a73e8; outline: none; }
-        .login-box button { width: 100%; padding: 14px; background: #1a73e8; color: white; border: none; font-weight: 700; cursor: pointer; border-radius: 8px; margin-top: 15px; font-size: 16px; transition: 0.2s; }
-        .login-box button:hover { background: #155db1; }
-        .password-wrapper { position: relative; width: 100%; margin-bottom: 15px; }
-        .password-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; }
+        /* STATUS LIGHT */
+        .status-indicator { position: fixed; top: 20px; right: 20px; background: white; padding: 8px 16px; border-radius: 50px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; z-index: 2000; box-shadow: var(--shadow); border: 1px solid var(--border); color: var(--text-light); }
+        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
+        .dot.green { background-color: var(--success); box-shadow: 0 0 4px var(--success); }
+        .dot.red { background-color: var(--danger); }
 
-        /* APP CONTAINER */
-        #app-container { display: none; max-width: 1000px; margin: 30px auto; padding: 15px; }
-        .container { background: white; padding: 35px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .factory-badge { background: #e8f0fe; color: #1a73e8; padding: 6px 18px; border-radius: 20px; font-weight: 700; letter-spacing: 0.5px; }
+        /* --- LOGIN SCREEN --- */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-box { background: white; padding: 50px 40px; border-radius: 12px; text-align: center; width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .login-box h2 { margin: 10px 0 30px 0; color: var(--text-main); font-weight: 700; }
+        
+        .login-input-group { width: 100%; margin-bottom: 15px; text-align: left; }
+        .login-box select, .login-box input { 
+            width: 100%; padding: 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; 
+            background: #fafafa; box-sizing: border-box; height: 50px; font-family: inherit;
+        }
+        .login-box select:focus, .login-box input:focus { border-color: var(--primary); background: white; outline: none; }
+        .login-box button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; border-radius: 6px; font-size: 16px; margin-top: 10px; transition: 0.2s; height: 50px; }
+        .login-box button:hover { background: var(--primary-dark); box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3); }
+
+        /* LAYOUT */
+        #app-container { display: none; max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: white; padding: 20px 30px; border-radius: 12px; box-shadow: var(--shadow); }
+        .factory-badge { background: #e3f2fd; color: var(--primary); padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 14px; letter-spacing: 0.5px; }
+        .logout-btn { cursor: pointer; color: var(--danger); font-weight: 600; display: flex; align-items: center; gap: 5px; font-size: 14px; transition: 0.2s; }
+        .logout-btn:hover { opacity: 0.7; }
 
         /* TABS */
-        .tabs { display: flex; margin-bottom: 30px; gap: 15px; border-bottom: 2px solid #f0f0f0; }
-        .tab { padding: 12px 25px; cursor: pointer; color: #777; font-weight: 600; display: flex; align-items: center; gap: 8px; border-radius: 8px 8px 0 0; transition: 0.2s; }
-        .tab.active { color: #1a73e8; border-bottom: 3px solid #1a73e8; background: #f8fbff; }
-        .tab:hover:not(.active) { background: #f5f5f5; color: #333; }
+        .tabs { display: flex; gap: 20px; margin-bottom: 20px; padding: 0 10px; }
+        .tab { padding: 12px 20px; cursor: pointer; color: var(--text-light); font-weight: 600; display: flex; align-items: center; gap: 8px; border-radius: 8px; transition: 0.2s; }
+        .tab.active { background: white; color: var(--primary); box-shadow: var(--shadow); }
+        .tab:hover:not(.active) { background: rgba(255,255,255,0.6); }
 
-        /* CONTENT & FORMS */
-        .content-section { display: none; animation: fadeIn 0.25s ease-out; }
+        /* CARDS & CONTAINERS */
+        .content-section { display: none; animation: fadeIn 0.3s ease; }
         .content-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        
-        input[type="text"], input[type="number"], input[type="date"] { padding: 12px; margin: 5px 0 15px 0; width: 100%; box-sizing: border-box; border: 2px solid #e0e0e0; border-radius: 8px; font-family: inherit; }
-        input:focus { border-color: #1a73e8; outline: none; }
-        
-        button.action-btn { background: #1a73e8; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; font-size: 14px; }
-        button.action-btn:hover { filter: brightness(90%); }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: end; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 25px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* SEARCH & RESULTS */
-        .result-box { border: 2px solid #1a73e8; padding: 25px; background: #f8fbff; margin-top: 25px; border-radius: 12px; display: none; }
-        .search-list { max-height: 250px; overflow-y: auto; border: 1px solid #eee; display: none; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .search-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; background: #fff; transition: 0.1s; }
-        .search-item:hover { background: #f0f7ff; color: #1a73e8; }
+        /* FORMS */
+        label { display: block; font-size: 12px; font-weight: 700; color: var(--text-light); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type="text"], input[type="number"], input[type="date"], input[type="password"], select { width: 100%; padding: 12px; border: 1px solid #cfd8dc; border-radius: 6px; font-size: 14px; box-sizing: border-box; transition: 0.2s; color: var(--text-main); font-family: inherit; }
+        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1); }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 15px; }
 
-        /* REPORTS TABLE */
-        .report-container { margin-top: 25px; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #eee; }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; }
-        th { background: #1a73e8; color: white; padding: 16px 15px; text-align: left; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 13px; }
-        td { padding: 14px 15px; border-bottom: 1px solid #eee; color: #444; }
-        tr:nth-child(even) { background-color: #f8fbff; }
-        tr:hover { background-color: #eef2f5; transition: 0.2s; }
-        .no-data-msg { padding: 30px; text-align: center; color: #777; font-style: italic; background: white; }
-        .loading-msg { padding: 30px; text-align: center; color: #1a73e8; font-weight: bold; background: white; }
+        /* BUTTONS */
+        .btn { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #1b5e20; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #b71c1c; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-accent:hover { background: #ef6c00; }
+        .btn-outline { background: white; border: 1px solid var(--border); color: var(--text-light); }
+        .btn-outline:hover { background: #f5f5f5; border-color: #bbb; }
+
+        /* SEARCH RESULTS */
+        .search-container { position: relative; }
+        .search-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; max-height: 300px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.1); display: none; margin-top: 5px; }
+        .search-item { padding: 12px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .search-item:hover { background: #f5f9ff; }
+        .item-main { font-weight: 600; color: var(--primary); }
+        .item-sub { font-size: 12px; color: var(--text-light); }
+        .loc-tag { background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid #ffe0b2; }
+
+        /* TABLES & CART */
+        .table-wrapper { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { background: #f8f9fa; color: var(--text-light); font-weight: 600; padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+        th:hover { background: #e3f2fd; color: var(--primary); }
+        td { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; color: var(--text-main); }
+        tr:last-child td { border-bottom: none; }
+        .remove-link { color: var(--danger); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; }
+        .remove-link:hover { text-decoration: underline; }
+
+        /* UTILS */
+        .section-title { font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; }
+        .password-wrapper { position: relative; width: 100%; }
+        .password-toggle { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; z-index: 10; }
+        .selected-item-card { background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 8px; padding: 20px; margin-top: 20px; display: none; }
+        .empty-state { text-align: center; padding: 40px; color: var(--text-light); font-style: italic; }
+
+        /* Custom File Input */
+        .file-upload-wrapper { position: relative; display: inline-block; margin-bottom: 15px; }
+        .file-upload-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        .file-upload-btn { display: inline-block; padding: 10px 20px; border: 1px solid var(--border); border-radius: 6px; background: #fafafa; color: var(--text-light); font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .file-upload-btn:hover { background: #f0f0f0; border-color: #ccc; }
+        
+        /* STOCK FILTER BOX */
+        .stock-filter-box { background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: none; border: 1px solid #bbdefb; }
     </style>
 </head>
 <body>
@@ -78,161 +131,225 @@
 
 <div id="login-screen">
     <div class="login-box">
-        <span class="material-icons" style="font-size: 60px; color:#1a73e8; margin-bottom: 10px;">lock_person</span>
-        <h2 style="color:#333; margin: 10px 0 25px 0;">Factory Login</h2>
+        <span class="material-icons" style="font-size: 60px; color: var(--primary); margin-bottom: 10px;">lock_person</span>
+        <h2>Factory Inventory</h2>
         
-        <div style="text-align: left; margin-bottom: 5px; font-weight: 600; font-size: 14px; color:#555;">Select Location</div>
-        <select id="factorySelect">
-            <option value="FTY01">FACTORY 01</option>
-            <option value="FTY04">FACTORY 04</option>
-            <option value="FTY05">FACTORY 05</option>
-        </select>
-
-        <div style="text-align: left; margin-bottom: 5px; margin-top: 15px; font-weight: 600; font-size: 14px; color:#555;">Enter PIN</div>
-        <div class="password-wrapper">
-            <input type="password" id="loginPass" placeholder="••••">
-            <span class="material-icons password-toggle" onclick="togglePass('loginPass', this)">visibility</span>
+        <div class="login-input-group">
+            <select id="factorySelect">
+                <option value="FTY01">FACTORY 01</option>
+                <option value="FTY03">FACTORY 03</option>
+                <option value="FTY04">FACTORY 04</option>
+                <option value="FTY05">FACTORY 05</option>
+            </select>
         </div>
-        
-        <button onclick="login()">LOGIN NOW</button>
-        <p id="loginMsg" style="margin-top:15px; font-weight: 500;"></p>
+
+        <div class="login-input-group">
+            <div class="password-wrapper">
+                <input type="password" id="loginPass" placeholder="Enter PIN">
+                <span class="material-icons password-toggle" onclick="togglePass('loginPass', this)">visibility</span>
+            </div>
+        </div>
+
+        <button onclick="login()">LOGIN</button>
+        <p id="loginMsg" style="margin-top:15px; font-size:14px; color:#d32f2f;"></p>
     </div>
 </div>
 
 <div id="app-container">
-    <div class="container">
-        
-        <div class="header-bar">
-            <div><span class="material-icons" style="vertical-align: sub; color: #1a73e8; margin-right: 5px;">apartment</span> <span class="factory-badge" id="displayFactory"></span></div>
-            <div style="cursor: pointer; color: #d93025; font-weight: 600; display: flex; align-items: center;" onclick="location.reload()">
-                <span class="material-icons" style="margin-right: 5px;">logout</span> Logout
+    
+    <div class="header-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="font-weight:700; font-size:18px; color:var(--text-main);">IMS Pro</div>
+            <span class="factory-badge" id="displayFactory"></span>
+        </div>
+        <div class="logout-btn" onclick="location.reload()">
+            <span class="material-icons">logout</span> Logout
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('issue-tab', event)"><span class="material-icons">shopping_cart</span> Issue Items</div>
+        <div class="tab" onclick="switchTab('receive-tab', event)"><span class="material-icons">add_box</span> Add Stock</div>
+        <div class="tab" onclick="switchTab('report-tab', event)"><span class="material-icons">analytics</span> Reports</div>
+        <div class="tab" onclick="switchTab('settings-tab', event)"><span class="material-icons">settings</span> Settings</div>
+    </div>
+
+    <div id="issue-tab" class="content-section active">
+        <div class="card">
+            <div class="section-title"><span class="material-icons">badge</span> Requisition Details</div>
+            <div class="grid-3">
+                <div><label>MR Number</label><input type="text" id="issueMR" placeholder="e.g. MR-2026-001"></div>
+                <div><label>Employee ID</label><input type="text" id="issueEmp" placeholder="e.g. 10455"></div>
+                <div><label>Department</label><input type="text" id="issueDept" placeholder="e.g. Sewing Line 4"></div>
             </div>
         </div>
 
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('issue-tab', event)"><span class="material-icons">outbound</span> ISSUE ITEM</div>
-            <div class="tab" onclick="switchTab('receive-tab', event)"><span class="material-icons">add_box</span> ADD STOCK</div>
-            <div class="tab" onclick="switchTab('report-tab', event)"><span class="material-icons">insights</span> REPORTS</div>
-            <div class="tab" onclick="switchTab('settings-tab', event)"><span class="material-icons">settings</span> SETTINGS</div>
-        </div>
-
-        <div id="issue-tab" class="content-section active">
-            <label style="font-weight: 600;">Find Part:</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="searchInput" placeholder="Start typing Part No, Description, or Model..." onkeyup="liveSearch()" autocomplete="off">
-                <button class="action-btn" style="width: 60px;" onclick="liveSearch()"><span class="material-icons">search</span></button>
+        <div class="card">
+            <div class="section-title"><span class="material-icons">search</span> Find & Add Items</div>
+            <div class="search-container">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="searchInput" placeholder="Scan or type Part No, Model, or Location..." onkeyup="liveSearch()" autocomplete="off">
+                </div>
+                <div id="matchesList" class="search-list"></div>
             </div>
-            <div id="matchesList" class="search-list"></div>
 
-            <div id="selectedItemBox" class="result-box">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+            <div id="selectedItemBox" class="selected-item-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <div style="font-size: 13px; color: #1a73e8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Selected Item</div>
-                        <div id="resDesc" style="font-size: 18px; font-weight: 600; color: #333; margin-top: 5px;"></div>
+                        <div style="font-size: 18px; font-weight: 700; color: var(--text-main);" id="resPart"></div>
+                        <div style="color: var(--text-light); margin-top: 4px;" id="resDesc"></div>
+                        <div style="margin-top: 8px;"><span class="loc-tag" id="resLoc"></span></div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 13px; color: #666;">Current Stock</div>
-                        <div id="resStock" style="font-size: 32px; color: #28a745; font-weight: 800; line-height: 1;"></div>
+                        <label>Stock</label>
+                        <div style="font-size: 24px; font-weight: 800; color: var(--success);" id="resStock"></div>
                     </div>
                 </div>
-                
-                <div class="grid-2">
-                    <div><label style="font-weight: 600;">MR No:</label><input type="text" id="issueMR" placeholder="Required"></div>
-                    <div><label style="font-weight: 600;">Employee ID:</label><input type="text" id="issueEmp" placeholder="Required"></div>
-                </div>
-                <div class="grid-2">
-                    <div><label style="font-weight: 600;">Department:</label><input type="text" id="issueDept" placeholder="Required"></div>
-                    <div><label style="font-weight: 600;">Issue Quantity:</label><input type="number" id="issueQty" value="1" min="1" style="font-size: 18px; font-weight: bold;"></div>
-                </div>
-                <div style="display: flex; gap: 15px; margin-top: 25px;">
-                    <button class="action-btn" style="background:#d93025; flex: 2; padding: 15px;" onclick="issueItem()"><span class="material-icons">outbound</span> CONFIRM ISSUE</button>
-                    <button class="action-btn" style="background:white; color:#555; border: 2px solid #ddd; flex: 1;" onclick="resetSearch()">CANCEL</button>
+                <div style="border-top: 1px solid #bbdefb; margin-top: 15px; padding-top: 15px; display: flex; align-items: flex-end; gap: 15px;">
+                    <div style="width: 120px;">
+                        <label>Issue Qty</label>
+                        <input type="number" id="issueQty" value="1" min="1" style="font-size: 16px; font-weight: bold;">
+                    </div>
+                    <button class="btn btn-accent" style="flex:1;" onclick="addToCart()"><span class="material-icons">add_shopping_cart</span> Add to List</button>
+                    <button class="btn btn-outline" onclick="resetSearch()">Cancel</button>
                 </div>
             </div>
         </div>
 
-        <div id="receive-tab" class="content-section">
-            <div style="background: #f8fbff; padding: 25px; border-radius: 12px; border: 1px solid #e0e0e0;">
-                <h3 style="margin-top: 0; color: #1a73e8;">Add Single Item</h3>
-                <div class="grid-2">
-                    <div><label style="font-weight: 600;">Part Number:</label><input type="text" id="newPartNo" placeholder="Leave blank for auto-ID"></div>
-                    <div><label style="font-weight: 600;">Model / Machine:</label><input type="text" id="newModel" placeholder="e.g., DDL-9000"></div>
-                </div>
-                <div><label style="font-weight: 600;">Description:</label><input type="text" id="newDesc" placeholder="Item Name / Spec"></div>
-                <div style="width: 50%;"><label style="font-weight: 600;">Quantity to Add:</label><input type="number" id="newQty" value="1" min="1" style="font-size: 18px; font-weight: bold;"></div>
-                <button class="action-btn" style="background: #28a745; margin-top: 10px; width: 100%; padding: 15px;" onclick="receiveItem()"><span class="material-icons">add_circle</span> ADD TO STOCK</button>
+        <div id="cartSection" class="card" style="display:none; border-left: 5px solid var(--accent);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div class="section-title" style="margin-bottom:0; border:none;"><span class="material-icons" style="color:var(--accent);">list_alt</span> Items to Issue</div>
+                <span class="remove-link" onclick="clearCart()">Clear All</span>
+            </div>
+            
+            <div class="table-wrapper">
+                <table id="cartTable">
+                    <thead><tr><th>Location</th><th>Model</th><th>Part No</th><th>Description</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
 
-            <div style="margin-top: 30px; text-align: center; padding: 30px; border: 2px dashed #ccc; border-radius: 12px;">
-                 <span class="material-icons" style="font-size: 40px; color: #1a73e8; display: block; margin-bottom: 10px;">cloud_upload</span>
-                <h3 style="margin: 0 0 15px 0; color: #555;">Bulk Import from Excel</h3>
-                <input type="file" id="excelFile" accept=".xlsx" style="border: none; background: transparent; padding: 0; margin-bottom: 15px;">
-                <button class="action-btn" style="background:#1a73e8; padding: 12px 30px;" onclick="importFromExcel()"><span class="material-icons">upload_file</span> PROCESS FILE</button>
-                <p style="font-size: 13px; color: #888; margin-top: 10px;">Columns needed: PartNo, Desc, Model, Qty</p>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-success" style="padding: 14px 30px;" onclick="submitIssue()">
+                    <span class="material-icons">check_circle</span> Finalize & Issue All
+                </button>
             </div>
         </div>
+    </div>
 
-        <div id="report-tab" class="content-section">
+    <div id="receive-tab" class="content-section">
+        <div class="card">
+            <div class="section-title"><span class="material-icons">add_circle_outline</span> Manual Entry</div>
+            
             <div class="grid-2">
-                <div>
-                    <label style="font-weight: 600;">Date Range:</label>
-                    <div style="display:flex; gap:10px;">
-                        <input type="date" id="startDate" style="margin: 0;">
-                        <input type="date" id="endDate" style="margin: 0;">
+                <div><label>1. Location / Bin</label><input type="text" id="newLoc" placeholder="e.g. Rack A-12"></div>
+                <div><label>2. Model / Machine</label><input type="text" id="newModel" placeholder="e.g. JUKI-9000"></div>
+            </div>
+            <div class="grid-3">
+                <div style="grid-column: span 2;"><label>3. Part Number</label><input type="text" id="newPartNo" placeholder="Scan or Type Part No"></div>
+                <div><label>5. Quantity</label><input type="number" id="newQty" value="1" style="font-weight: bold;"></div>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label>4. Description</label><input type="text" id="newDesc" placeholder="Item Name / Specification">
+            </div>
+            
+            <button class="btn btn-success" style="width: 100%;" onclick="receiveItem()"><span class="material-icons">save</span> Add to Inventory</button>
+        </div>
+
+        <div class="card" style="text-align: center; border-style: dashed; background: #fafafa;">
+            <div class="section-title" style="justify-content: center; border:none; color: var(--primary);"><span class="material-icons">cloud_upload</span> Bulk Import</div>
+            <p style="color: var(--text-light); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Excel Columns: <b>Location, Model, PartNo, Desc, Qty</b></p>
+            
+            <div class="file-upload-wrapper">
+                <button class="file-upload-btn">Choose File</button>
+                <input type="file" id="excelFile" accept=".xlsx" onchange="updateFileName(this)">
+            </div>
+            <span id="fileNameDisplay" style="margin-left: 10px; color: var(--text-light); font-size: 14px;">No file chosen</span>
+            <br><br>
+            <button class="btn btn-primary" onclick="importFromExcel()"><span class="material-icons">upload_file</span> Upload Excel</button>
+        </div>
+    </div>
+
+    <div id="report-tab" class="content-section">
+        <div class="card">
+            <div class="section-title"><span class="material-icons">date_range</span> Reports</div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-primary" style="flex:1;" onclick="loadTransactionReport()">
+                    <span class="material-icons">history</span> History
+                </button>
+                <button class="btn btn-success" style="flex:1;" onclick="loadCurrentStockReport()">
+                    <span class="material-icons">inventory</span> Current Stock
+                </button>
+            </div>
+
+            <div id="dateFilterBox" style="display:block; background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:20px;">
+                <label>Select Date Range for History:</label>
+                <div class="grid-2" style="margin-bottom:0;">
+                    <input type="date" id="startDate">
+                    <input type="date" id="endDate">
+                </div>
+            </div>
+
+            <div id="stockFilterBox" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-bottom:20px;">
+                <label style="color:var(--primary);">Filter Stock List:</label>
+                <div class="grid-2" style="margin-bottom:0; grid-template-columns: 3fr 1fr;">
+                    <input type="text" id="stockSearchInput" placeholder="Filter by Brand, Model, Part No..." onkeyup="filterStockReport()">
+                    <div style="align-self:center; text-align:right; font-weight:600; color:var(--primary);">
+                        <span id="stockCount">0</span> Items
                     </div>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="action-btn" style="flex:1; background: #1a73e8;" onclick="loadTransactionReport()"><span class="material-icons">history</span> VIEW HISTORY</button>
-                    <button class="action-btn" style="flex:1; background: #28a745;" onclick="loadCurrentStockReport()"><span class="material-icons">inventory_2</span> CURRENT STOCK</button>
-                </div>
-            </div>
-
-            <div class="report-container">
-                <div id="reportLoading" class="loading-msg" style="display:none;"><span class="material-icons spin" style="vertical-align: middle; margin-right: 8px;">sync</span>Loading data...</div>
-                <div style="overflow-x:auto;">
-                    <table id="reportTable">
-                        <thead></thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-                <div id="noDataMsg" class="no-data-msg" style="display:none;">No records found for the selected criteria.</div>
-            </div>
-
-             <div style="text-align: right; margin-top: 15px;">
-                <button class="action-btn" onclick="exportToExcel()" style="background: #0d47a1;"><span class="material-icons">file_download</span> DOWNLOAD REPORT EXCEL</button>
             </div>
         </div>
 
-        <div id="settings-tab" class="content-section">
-            <div style="padding: 20px; border: 1px solid #eee; border-radius: 12px;">
-                <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px;"><span class="material-icons" style="color: #d93025;">security</span> Security Settings</h3>
-                <p>Change the login PIN for <strong id="settingFactoryName" style="color: #1a73e8;"></strong></p>
-                
-                <label style="font-weight: 600; margin-top: 20px;">Current PIN:</label>
-                <div class="password-wrapper">
-                    <input type="password" id="oldPass" placeholder="Enter current PIN">
-                    <span class="material-icons password-toggle" onclick="togglePass('oldPass', this)">visibility</span>
+        <div class="card">
+            <div id="reportLoading" style="display:none; text-align:center; padding:20px; color:var(--primary); font-weight:600;">Loading Data...</div>
+            
+            <div class="table-wrapper">
+                <div style="overflow-x:auto;">
+                    <table id="reportTable"><thead></thead><tbody></tbody></table>
                 </div>
-                
-                <label style="font-weight: 600;">New PIN:</label>
+            </div>
+            
+            <div id="noDataMsg" class="empty-state" style="display:none;">No records found.</div>
+            
+            <div style="text-align: right; margin-top: 15px;">
+                <button class="btn btn-primary" onclick="exportToExcel()"><span class="material-icons">download</span> Download Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-tab" class="content-section">
+        <div class="card">
+            <div class="section-title"><span class="material-icons">lock</span> Security</div>
+            
+            <div style="margin-bottom: 20px;">
+                <label>Current PIN</label>
                 <div class="password-wrapper">
-                    <input type="password" id="newPass" placeholder="Enter new 4-digit PIN">
+                    <input type="password" id="currentPass" placeholder="Enter current PIN">
+                    <span class="material-icons password-toggle" onclick="togglePass('currentPass', this)">visibility</span>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label>New PIN (Min 10 chars)</label>
+                <div class="password-wrapper">
+                    <input type="password" id="newPass" placeholder="Enter new PIN">
                     <span class="material-icons password-toggle" onclick="togglePass('newPass', this)">visibility</span>
                 </div>
-                <button class="action-btn" onclick="changePassword()" style="margin-top: 15px; padding: 15px; width: 100%;"><span class="material-icons">lock_reset</span> UPDATE PIN</button>
             </div>
+            
+            <button class="btn btn-primary" style="margin-top: 15px;" onclick="changePassword()">Save New PIN</button>
         </div>
-
     </div>
+
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // ============================================
-    // FIREBASE KEYS (PRE-FILLED)
-    // ============================================
+    // CONFIG
     const firebaseConfig = {
         apiKey: "AIzaSyDD-j_7VC20v4mNFmfdpEGk0yIErDF8Pv8",
         authDomain: "inventory-system-5356c.firebaseapp.com",
@@ -243,77 +360,66 @@
         measurementId: "G-D4VWJD23ND"
     };
 
-    // SYSTEM STATUS INDICATORS
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     let db; 
 
+    // INIT
     try {
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         statusDot.className = "dot green";
-        statusText.innerText = "System Ready";
+        statusText.innerText = "Online";
     } catch (e) {
-        console.error(e);
         statusDot.className = "dot red";
-        statusText.innerText = "Connection Failed";
-        alert("CRITICAL ERROR: " + e.message);
+        statusText.innerText = "Offline";
     }
 
-    // GLOBAL VARIABLES
     let activeFactory = ""; 
     let inventoryCache = [];
     let activeItem = null;
+    let issueCart = []; 
+    // Variable to hold data for sorting
+    let currentReportData = [];
 
-    // HELPER: Format Date nicely
     function formatDate(timestamp) {
         if (!timestamp) return '-';
-        const date = timestamp.toDate();
-        return date.toLocaleDateString();
+        return timestamp.toDate().toLocaleDateString();
     }
 
-    // INIT: Set default dates to today
-    window.addEventListener('DOMContentLoaded', (event) => {
+    window.addEventListener('DOMContentLoaded', () => {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('startDate').value = today;
         document.getElementById('endDate').value = today;
     });
 
-    // --- 0. PASSWORD TOGGLE ---
-    window.togglePass = (inputId, iconElement) => {
-        const input = document.getElementById(inputId);
-        if (input.type === "password") {
-            input.type = "text";
-            iconElement.innerText = "visibility_off";
-        } else {
-            input.type = "password";
-            iconElement.innerText = "visibility";
-        }
+    // PASSWORD TOGGLE
+    window.togglePass = (id, icon) => {
+        const input = document.getElementById(id);
+        if (input.type === "password") { input.type = "text"; icon.innerText = "visibility_off"; } 
+        else { input.type = "password"; icon.innerText = "visibility"; }
     };
 
-    // --- ENABLE "ENTER" KEY FOR LOGIN ---
+    // --- ENABLE ENTER KEY FOR LOGIN ---
     document.getElementById("loginPass").addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
             login();
         }
     });
 
-    // --- 1. SECURE LOGIN ---
+    // LOGIN
     window.login = async () => {
         const factory = document.getElementById('factorySelect').value;
         const pass = document.getElementById('loginPass').value.trim();
         const msg = document.getElementById('loginMsg');
-
-        if(!pass) { msg.innerText = "Enter PIN"; msg.style.color = "red"; return; }
-        if(!db) { msg.innerText = "Database Offline"; msg.style.color = "red"; return; }
         
-        msg.innerText = "Verifying..."; msg.style.color = "#666";
+        if(!db) return;
+        msg.innerText = "Verifying...";
         
         try {
             const credRef = doc(db, "credentials", factory);
             const credSnap = await getDoc(credRef);
-            
-            let validPassword = "1234"; // DEFAULT
+            let validPassword = "1234"; 
             if(credSnap.exists()) validPassword = credSnap.data().pin;
 
             if(pass === validPassword) {
@@ -321,38 +427,38 @@
                 document.getElementById('login-screen').style.display = "none";
                 document.getElementById('app-container').style.display = "block";
                 document.getElementById('displayFactory').innerText = activeFactory;
-                document.getElementById('settingFactoryName').innerText = activeFactory;
                 refreshInventoryCache(); 
-            } else {
-                msg.innerText = "Incorrect PIN"; msg.style.color = "red";
+            } else { msg.innerText = "Incorrect PIN"; }
+        } catch(e) { console.error(e); msg.innerText = "Connection Error"; }
+    };
+
+    window.changePassword = async () => {
+        const currentP = document.getElementById('currentPass').value.trim();
+        const newP = document.getElementById('newPass').value.trim();
+
+        if(!currentP || !newP) return alert("Please enter both current and new PINs.");
+        if(newP.length < 10) return alert("New PIN must be at least 10 characters.");
+
+        try {
+            const credRef = doc(db, "credentials", activeFactory);
+            const credSnap = await getDoc(credRef);
+            let validPassword = "1234"; // Default if not set
+            if(credSnap.exists()) validPassword = credSnap.data().pin;
+
+            if(currentP !== validPassword) {
+                return alert("Current PIN is incorrect.");
             }
-        } catch(e) {
+
+            await setDoc(credRef, { pin: newP });
+            alert("PIN Updated Successfully");
+            document.getElementById('currentPass').value = "";
+            document.getElementById('newPass').value = "";
+        } catch (e) {
             console.error(e);
-            msg.innerText = "Connection Error!"; msg.style.color = "red";
+            alert("Error updating PIN.");
         }
     };
 
-    // --- 2. CHANGE PASSWORD ---
-    window.changePassword = async () => {
-        const oldP = document.getElementById('oldPass').value.trim();
-        const newP = document.getElementById('newPass').value.trim();
-        if(!oldP || !newP) return alert("Please fill in all fields");
-        if(newP.length < 4) return alert("New PIN must be at least 4 digits");
-
-        const credRef = doc(db, "credentials", activeFactory);
-        const credSnap = await getDoc(credRef);
-        let currentDbPass = "1234"; 
-        if(credSnap.exists()) currentDbPass = credSnap.data().pin;
-        
-        if(oldP !== currentDbPass) return alert("Current PIN is incorrect");
-        
-        await setDoc(credRef, { pin: newP });
-        alert("PIN Successfully Updated!");
-        document.getElementById('oldPass').value = "";
-        document.getElementById('newPass').value = "";
-    };
-
-    // --- 3. DATA LOADING ---
     async function refreshInventoryCache() {
         const q = query(collection(db, "inventory"), where("factory_id", "==", activeFactory));
         const snap = await getDocs(q);
@@ -360,135 +466,172 @@
         snap.forEach(d => inventoryCache.push({ ...d.data(), docId: d.id }));
     }
 
-    // --- 4. SEARCH (Shows Model in List) ---
+    // SEARCH
     window.liveSearch = () => {
         const text = document.getElementById('searchInput').value.trim().toUpperCase();
         const list = document.getElementById('matchesList');
         list.innerHTML = "";
-        if(text.length < 2) { list.style.display = "none"; return; }
+        list.style.display = "none";
+        
+        if(text.length < 2) return;
 
         const matches = inventoryCache.filter(i => 
             (i.part_number||"").includes(text) || 
             (i.description||"").toUpperCase().includes(text) ||
-            (i.model||i.Model||i.machine||"").toUpperCase().includes(text)
+            (i.model||"").toUpperCase().includes(text) ||
+            (i.location||"").toUpperCase().includes(text)
         );
 
         list.style.display = "block";
-        if(matches.length === 0) list.innerHTML = "<div class='search-item' style='color:#999;'>No matching items found</div>";
+        if(matches.length === 0) list.innerHTML = "<div class='search-item' style='color:#999; cursor:default;'>No matching items</div>";
         else matches.forEach(i => {
             const d = document.createElement('div');
             d.className = 'search-item';
-            
-            const modelVal = i.model || i.Model || i.machine || "";
-            const modelText = modelVal ? `<span style='color:#666; font-size:0.9em;'> [${modelVal}]</span>` : "";
-            
-            d.innerHTML = `<div style="font-weight:bold; color:#1a73e8;">${i.part_number}</div><div>${i.description}${modelText}</div>`;
-            
+            const loc = i.location || "N/A";
+            d.innerHTML = `
+                <div>
+                    <div class="item-main">${i.part_number} <span class="loc-tag">${loc}</span></div>
+                    <div class="item-sub">${i.description} ${i.model ? '| ' + i.model : ''}</div>
+                </div>
+                <div style="font-weight:bold; color:${i.current_stock < 5 ? 'var(--danger)' : 'var(--success)'}">${i.current_stock}</div>
+            `;
             d.onclick = () => selectItem(i);
             list.appendChild(d);
         });
     };
 
-    // --- 5. SELECT ITEM ---
     window.selectItem = (i) => {
         activeItem = i;
         document.getElementById('matchesList').style.display = "none";
         document.getElementById('selectedItemBox').style.display = "block";
         
-        const pNo = i.part_number || "---";
-        const desc = i.description || "---";
-        const model = i.model || i.Model || i.machine || ""; 
-
-        // DISPLAY FORMAT: "Model Part# | Desc"
-        let displayText = `${pNo} | ${desc}`;
-        if(model) {
-            displayText = `${model} ${pNo} | ${desc}`;
-        }
-        
-        document.getElementById('resDesc').innerText = displayText;
+        document.getElementById('resPart').innerText = `${i.part_number}`;
+        document.getElementById('resDesc').innerText = `${i.description} ${i.model ? '| ' + i.model : ''}`;
+        document.getElementById('resLoc').innerText = i.location ? `LOC: ${i.location}` : "LOC: N/A";
         document.getElementById('resStock').innerText = i.current_stock;
         document.getElementById('issueQty').max = i.current_stock;
+        document.getElementById('issueQty').value = 1;
+        document.getElementById('searchInput').value = "";
     };
 
     window.resetSearch = () => {
         document.getElementById('selectedItemBox').style.display = "none";
-        document.getElementById('matchesList').style.display = "none";
-        document.getElementById('searchInput').value = "";
         activeItem = null;
     };
 
-    // --- 6. TRANSACTIONS ---
-    window.receiveItem = async () => {
-        let pNo = document.getElementById('newPartNo').value.trim().toUpperCase();
-        const qty = parseInt(document.getElementById('newQty').value);
-        if(qty <= 0 || isNaN(qty)) return alert("Invalid Quantity");
+    // CART
+    window.addToCart = () => {
+        if(!activeItem) return;
+        const qty = parseInt(document.getElementById('issueQty').value);
+        if(qty <= 0 || qty > activeItem.current_stock) return alert("Invalid Quantity or Insufficient Stock");
+        if(issueCart.some(x => x.docId === activeItem.docId)) return alert("Item already in cart");
 
-        if(!pNo) pNo = "GEN-" + Date.now();
-        const compositeId = `${activeFactory}_${pNo}`;
-
-        const ref = doc(db, "inventory", compositeId);
-        const snap = await getDoc(ref);
-        
-        const modelVal = document.getElementById('newModel').value.trim();
-        const descVal = document.getElementById('newDesc').value.trim();
-
-        if(snap.exists()) {
-             await updateDoc(ref, { current_stock: snap.data().current_stock + qty });
-        } else {
-             if(!descVal) return alert("Description is required for new items.");
-             await setDoc(ref, { 
-                part_number: pNo, factory_id: activeFactory, 
-                model: modelVal, 
-                description: descVal, 
-                current_stock: qty 
-            });
-        }
-        alert("Stock Added Successfully!"); 
-        document.getElementById('newPartNo').value = "";
-        document.getElementById('newModel').value = "";
-        document.getElementById('newDesc').value = "";
-        document.getElementById('newQty').value = "1";
-        refreshInventoryCache();
+        issueCart.push({ ...activeItem, issueQty: qty });
+        renderCart();
+        resetSearch();
     };
 
-    window.issueItem = async () => {
-        if(!activeItem) return alert("Please select an item first");
-        const qty = parseInt(document.getElementById('issueQty').value);
+    function renderCart() {
+        const section = document.getElementById('cartSection');
+        const tbody = document.querySelector("#cartTable tbody");
+        
+        if(issueCart.length === 0) { section.style.display = "none"; return; }
+        
+        section.style.display = "block";
+        tbody.innerHTML = "";
+        issueCart.forEach((item, index) => {
+            tbody.innerHTML += `<tr>
+                <td style="color:var(--primary); font-weight:600;">${item.location||'-'}</td>
+                <td>${item.model||'-'}</td>
+                <td>${item.part_number}</td>
+                <td>${item.description}</td>
+                <td style="text-align:center; font-weight:bold;">${item.issueQty}</td>
+                <td style="text-align:right;"><span class="remove-link" onclick="removeFromCart(${index})">Remove</span></td>
+            </tr>`;
+        });
+    }
+
+    window.removeFromCart = (index) => {
+        issueCart.splice(index, 1);
+        renderCart();
+    };
+    
+    window.clearCart = () => {
+        issueCart = [];
+        renderCart();
+    };
+
+    // SUBMIT ISSUE
+    window.submitIssue = async () => {
         const mr = document.getElementById('issueMR').value.trim();
         const emp = document.getElementById('issueEmp').value.trim();
         const dept = document.getElementById('issueDept').value.trim();
-
-        if(qty <= 0 || isNaN(qty)) return alert("Invalid Quantity");
-        if(!mr || !emp || !dept) return alert("Please fill in all required fields (MR, Emp, Dept)");
-
-        const ref = doc(db, "inventory", activeItem.docId);
-        const snap = await getDoc(ref);
         
-        if(!snap.exists()) return alert("Item not found related to this factory.");
-        if(snap.data().current_stock < qty) return alert("Insufficient Stock!");
+        if(!mr || !emp || !dept) return alert("Please fill MR No, Employee ID, and Department.");
+        if(issueCart.length === 0) return alert("Cart is empty");
 
-        await updateDoc(ref, { current_stock: snap.data().current_stock - qty });
-        await addDoc(collection(db, "transactions"), {
-            factory_id: activeFactory, 
-            part_number: activeItem.part_number,
-            description: activeItem.description || "",
-            model: activeItem.model || activeItem.machine || "",
-            mr_no: mr,
-            emp: emp, 
-            dept: dept,
-            qty_issued: qty, 
-            date: Timestamp.now()
-        });
-        alert("Item Issued Successfully!"); 
-        refreshInventoryCache(); 
-        resetSearch();
-        document.getElementById('issueMR').value = "";
-        document.getElementById('issueEmp').value = "";
-        document.getElementById('issueDept').value = "";
-        document.getElementById('issueQty').value = "1";
+        if(!confirm(`Confirm issue of ${issueCart.length} items?`)) return;
+
+        try {
+            for (const item of issueCart) {
+                const ref = doc(db, "inventory", item.docId);
+                const snap = await getDoc(ref);
+                if(snap.exists()) {
+                    let current = snap.data().current_stock;
+                    if(current >= item.issueQty) {
+                        await updateDoc(ref, { current_stock: current - item.issueQty });
+                        await addDoc(collection(db, "transactions"), {
+                            factory_id: activeFactory,
+                            part_number: item.part_number,
+                            description: item.description,
+                            model: item.model || "",
+                            location: item.location || "",
+                            mr_no: mr, emp: emp, dept: dept,
+                            qty_issued: item.issueQty,
+                            date: Timestamp.now()
+                        });
+                    }
+                }
+            }
+            alert("Items Issued Successfully!");
+            clearCart();
+            document.getElementById('issueMR').value = "";
+            document.getElementById('issueEmp').value = "";
+            document.getElementById('issueDept').value = "";
+            refreshInventoryCache();
+        } catch(e) {
+            console.error(e);
+            alert("Error processing transaction.");
+        }
     };
 
-    // --- 7. EXCEL IMPORT ---
+    // ADD STOCK (MANUAL)
+    window.receiveItem = async () => {
+        let pNo = document.getElementById('newPartNo').value.trim().toUpperCase();
+        const qty = parseInt(document.getElementById('newQty').value);
+        if(!pNo) pNo = "GEN-" + Date.now();
+        const ref = doc(db, "inventory", `${activeFactory}_${pNo}`);
+        const snap = await getDoc(ref);
+        
+        const data = {
+            part_number: pNo, factory_id: activeFactory, 
+            location: document.getElementById('newLoc').value,
+            model: document.getElementById('newModel').value, 
+            description: document.getElementById('newDesc').value, 
+            current_stock: qty
+        };
+
+        if(snap.exists()) await updateDoc(ref, { current_stock: snap.data().current_stock + qty });
+        else {
+            if(!data.description) return alert("Description is required");
+            await setDoc(ref, data);
+        }
+        alert("Stock Updated!"); 
+        document.getElementById('newPartNo').value = "";
+        refreshInventoryCache();
+    };
+
+    // EXCEL IMPORT (Prioritizes Location -> Model -> PartNo -> Desc -> Qty)
     window.importFromExcel = () => {
         const file = document.getElementById('excelFile').files[0];
         if(!file) return alert("Select File");
@@ -497,154 +640,156 @@
             const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
             const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
             let count = 0;
-            
             for(let row of raw) {
-                let clean = {}; 
-                Object.keys(row).forEach(k => clean[k.toLowerCase().replace(/[\s\-_.]/g, "")] = row[k]);
+                let clean = {}; Object.keys(row).forEach(k => clean[k.toLowerCase().replace(/[\s\-_.]/g, "")] = row[k]);
                 
                 let pNo = String(clean['partno']||clean['pno']||"").trim().toUpperCase();
-                let desc = clean['desc'] || clean['description'] || "";
                 let qty = parseInt(clean['qty']||clean['quantity']||0);
-                let modelVal = clean['model'] || clean['machine'] || ""; 
+                let loc = clean['location'] || clean['loc'] || clean['bin'] || ""; 
+                let model = clean['model'] || clean['machine'] || "";
+                let desc = clean['desc'] || clean['description'] || "";
 
-                if((pNo || desc) && !isNaN(qty) && qty > 0) {
+                if((pNo || desc) && qty > 0) {
                     if(!pNo) pNo = "GEN-" + Math.random().toString(36).substr(2,9).toUpperCase();
-                    
                     const ref = doc(db, "inventory", `${activeFactory}_${pNo}`);
                     const s = await getDoc(ref);
                     
-                    if(s.exists()) {
-                        await updateDoc(ref, { current_stock: s.data().current_stock + qty });
-                    } else {
-                        await setDoc(ref, { 
-                            part_number: pNo, 
-                            factory_id: activeFactory, 
-                            description: desc, 
-                            model: modelVal, 
-                            current_stock: qty 
-                        });
-                    }
+                    if(s.exists()) await updateDoc(ref, { current_stock: s.data().current_stock + qty });
+                    else await setDoc(ref, { 
+                        part_number: pNo, factory_id: activeFactory, 
+                        description: desc, model: model, location: loc,
+                        current_stock: qty 
+                    });
                     count++;
                 }
             }
-            alert(`Successfully processed ${count} items.`); 
-            document.getElementById('excelFile').value = ""; 
+            alert(`Imported ${count} items successfully.`); 
             refreshInventoryCache();
         };
         reader.readAsArrayBuffer(file);
     };
 
-    // --- 8. REPORTS (FIXED: CLIENT-SIDE FILTERING TO AVOID INDEX ERROR) ---
+    // --- REPORT: CURRENT STOCK ---
     window.loadCurrentStockReport = () => {
-        const tb = document.querySelector("#reportTable tbody"); 
-        const thead = document.querySelector("#reportTable thead");
-        const noData = document.getElementById("noDataMsg");
-        const loading = document.getElementById("reportLoading");
+        // UI TOGGLES
+        document.getElementById("dateFilterBox").style.display = "none";
+        document.getElementById("stockFilterBox").style.display = "block";
+        document.getElementById("noDataMsg").style.display = "none";
         
-        loading.style.display = "none";
+        const thead = document.querySelector("#reportTable thead");
+        thead.innerHTML = `
+            <tr>
+                <th onclick="sortStock('location')">Location ⬍</th>
+                <th onclick="sortStock('model')">Model / Brand ⬍</th>
+                <th onclick="sortStock('part_number')">Part No ⬍</th>
+                <th onclick="sortStock('description')">Description ⬍</th>
+                <th onclick="sortStock('current_stock')">Stock ⬍</th>
+            </tr>`;
+        
+        // Load data locally for filtering
+        currentReportData = [...inventoryCache]; 
+        renderStockTable(currentReportData);
+    };
 
-        if(inventoryCache.length === 0) {
-            tb.innerHTML = "";
-            thead.innerHTML = "";
-            noData.style.display = "block";
-            noData.innerText = "Current stock is empty.";
+    window.renderStockTable = (data) => {
+        const tb = document.querySelector("#reportTable tbody");
+        tb.innerHTML = "";
+        
+        // Update Count
+        document.getElementById("stockCount").innerText = data.length;
+
+        if(data.length === 0) {
+            tb.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px;'>No matching items</td></tr>";
             return;
         }
 
-        noData.style.display = "none";
-        thead.innerHTML = "<tr><th>Part No</th><th>Model</th><th>Description</th><th style='text-align:center;'>In Stock</th></tr>";
-        tb.innerHTML = "";
-        
-        inventoryCache.forEach(d => {
-            const modelVal = d.model || d.machine || '-';
-            const stockStyle = d.current_stock < 5 ? "color:#d93025; font-weight:bold;" : "color:#28a745; font-weight:bold;";
+        data.forEach(d => {
             tb.innerHTML += `<tr>
-                <td style="font-weight:600;">${d.part_number}</td>
-                <td>${modelVal}</td>
+                <td style="color:var(--accent); font-weight:600;">${d.location||'-'}</td>
+                <td>${d.model||'-'}</td>
+                <td>${d.part_number}</td>
                 <td>${d.description}</td>
-                <td style="text-align:center; font-size:16px; ${stockStyle}">${d.current_stock}</td>
+                <td style="font-weight:bold; color:${d.current_stock < 5 ? 'var(--danger)' : 'var(--success)'}">${d.current_stock}</td>
+            </tr>`;
+        });
+    }
+
+    // --- FILTER FUNCTION ---
+    window.filterStockReport = () => {
+        const val = document.getElementById("stockSearchInput").value.toUpperCase();
+        const filtered = inventoryCache.filter(i => 
+            (i.part_number||"").includes(val) || 
+            (i.model||"").toUpperCase().includes(val) || 
+            (i.description||"").toUpperCase().includes(val) ||
+            (i.location||"").toUpperCase().includes(val)
+        );
+        currentReportData = filtered;
+        renderStockTable(filtered);
+    }
+
+    // --- SORT FUNCTION ---
+    let sortDir = 1;
+    window.sortStock = (key) => {
+        sortDir = -sortDir; // Toggle asc/desc
+        currentReportData.sort((a, b) => {
+            let valA = a[key] || "";
+            let valB = b[key] || "";
+            
+            // Number sort for stock
+            if(key === 'current_stock') {
+                return (a[key] - b[key]) * sortDir;
+            }
+            // String sort for others
+            return valA.toString().localeCompare(valB.toString()) * sortDir;
+        });
+        renderStockTable(currentReportData);
+    }
+
+    // --- REPORT: HISTORY ---
+    window.loadTransactionReport = async () => {
+        // UI TOGGLES
+        document.getElementById("dateFilterBox").style.display = "block";
+        document.getElementById("stockFilterBox").style.display = "none";
+        
+        const sVal = document.getElementById('startDate').value;
+        const eVal = document.getElementById('endDate').value;
+        const loading = document.getElementById('reportLoading');
+        loading.style.display = "block";
+        document.querySelector("#reportTable tbody").innerHTML = "";
+
+        const q = query(collection(db, "transactions"), where("factory_id", "==", activeFactory));
+        const snap = await getDocs(q);
+        const docs = [];
+        const start = new Date(sVal); const end = new Date(eVal); end.setHours(23,59,59);
+
+        snap.forEach(d => {
+            const data = d.data();
+            const date = data.date.toDate();
+            if(date >= start && date <= end) docs.push(data);
+        });
+        docs.sort((a,b) => b.date.seconds - a.date.seconds);
+
+        loading.style.display = "none";
+        document.getElementById("noDataMsg").style.display = docs.length ? "none" : "block";
+
+        const tb = document.querySelector("#reportTable tbody");
+        const thead = document.querySelector("#reportTable thead");
+        thead.innerHTML = "<tr><th>Date</th><th>MR No</th><th>Issued To</th><th>Item</th><th>Qty</th></tr>";
+        
+        docs.forEach(v => {
+            tb.innerHTML += `<tr>
+                <td>${formatDate(v.date)}</td>
+                <td>${v.mr_no}</td>
+                <td>${v.emp}<br><small style="color:#999;">${v.dept}</small></td>
+                <td>${v.part_number}<br><small style="color:#666;">${v.description}</small></td>
+                <td style="font-weight:bold;">${v.qty_issued}</td>
             </tr>`;
         });
     };
 
-    window.loadTransactionReport = async () => {
-        const sVal = document.getElementById('startDate').value;
-        const eVal = document.getElementById('endDate').value;
-        const loading = document.getElementById("reportLoading");
-        const tb = document.querySelector("#reportTable tbody");
-        const thead = document.querySelector("#reportTable thead");
-        const noData = document.getElementById("noDataMsg");
-
-        if(!sVal || !eVal) return alert("Please select both Start and End dates");
-        
-        tb.innerHTML = ""; thead.innerHTML = ""; noData.style.display = "none";
-        loading.style.display = "block";
-
-        try {
-            const startDate = new Date(sVal);
-            const endDate = new Date(eVal);
-            endDate.setHours(23,59,59,999); 
-
-            // STEP 1: Query ONLY by Factory (Bypasses Index Error)
-            const q = query(
-                collection(db, "transactions"), 
-                where("factory_id", "==", activeFactory)
-            );
-
-            const snap = await getDocs(q);
-            loading.style.display = "none";
-
-            if(snap.empty) {
-                noData.style.display = "block";
-                noData.innerText = "No records found.";
-                return;
-            } 
-            
-            // STEP 2: Filter by Date inside JavaScript
-            let docs = [];
-            snap.forEach(d => {
-                const data = d.data();
-                const txDate = data.date.toDate(); // Convert Firestore Timestamp
-                if(txDate >= startDate && txDate <= endDate) {
-                    docs.push(data);
-                }
-            });
-
-            // STEP 3: Check if empty after filtering
-            if(docs.length === 0) {
-                noData.style.display = "block";
-                noData.innerText = "No issue records found for this date range.";
-                return;
-            }
-
-            // STEP 4: Sort Newest First
-            docs.sort((a, b) => b.date.seconds - a.date.seconds);
-
-            // STEP 5: Render
-            thead.innerHTML = "<tr><th>Date</th><th>MR No</th><th>Part Info</th><th>Issued To</th><th>Qty</th></tr>";
-            
-            docs.forEach(v => { 
-                const modelText = v.model ? `[${v.model}] ` : "";
-                tb.innerHTML += `<tr>
-                    <td>${formatDate(v.date)}</td>
-                    <td style="font-weight:600;">${v.mr_no}</td>
-                    <td>${modelText}${v.part_number}<br><small style="color:#666;">${v.description}</small></td>
-                    <td>${v.emp}<br><small style="color:#666;">${v.dept}</small></td>
-                    <td style="text-align:center; font-weight:bold; font-size:15px;">${v.qty_issued}</td>
-                </tr>`; 
-            });
-            
-        } catch (err) {
-             console.error(err);
-             loading.style.display = "none";
-             alert("Error loading report: " + err.message);
-        }
-    };
-
     window.exportToExcel = () => {
         const table = document.getElementById("reportTable");
-        if(table.rows.length < 2) return alert("No data to export.");
-        XLSX.writeFile(XLSX.utils.table_to_book(table), `Inventory_Report_${activeFactory}.xlsx`);
+        XLSX.writeFile(XLSX.utils.table_to_book(table), `Report.xlsx`);
     };
 
     window.switchTab = (id, e) => {
@@ -652,10 +797,14 @@
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         e.currentTarget.classList.add('active');
-        if(id !== 'report-tab') {
-             document.querySelector("#reportTable tbody").innerHTML = "";
-             document.querySelector("#reportTable thead").innerHTML = "";
-             document.getElementById("noDataMsg").style.display = "none";
+    };
+
+    window.updateFileName = (input) => {
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        if (input.files && input.files.length > 0) {
+            fileNameDisplay.textContent = input.files[0].name;
+        } else {
+            fileNameDisplay.textContent = 'No file chosen';
         }
     };
 </script>
