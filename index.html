@@ -122,12 +122,8 @@
         /* STOCK FILTER BOX */
         .stock-filter-box { background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: none; border: 1px solid #bbdefb; }
 
-        /* FIXED HEIGHT CONTROLS FOR ACTION BAR */
-        .control-height {
-            height: 48px !important;
-            box-sizing: border-box !important;
-            margin: 0 !important;
-        }
+        /* FIXED HEIGHT CONTROLS */
+        .control-height { height: 48px !important; box-sizing: border-box !important; margin: 0 !important; }
     </style>
 </head>
 <body>
@@ -141,7 +137,6 @@
     <div class="login-box">
         <span class="material-icons" style="font-size: 60px; color: var(--primary); margin-bottom: 10px;">lock_person</span>
         <h2>Factory Inventory</h2>
-        
         <div class="login-input-group">
             <select id="factorySelect">
                 <option value="FTY01">FACTORY 01</option>
@@ -150,21 +145,18 @@
                 <option value="FTY05">FACTORY 05</option>
             </select>
         </div>
-
         <div class="login-input-group">
             <div class="password-wrapper">
                 <input type="password" id="loginPass" placeholder="Enter PIN">
                 <span class="material-icons password-toggle" onclick="togglePass('loginPass', this)">visibility</span>
             </div>
         </div>
-
         <button onclick="login()">LOGIN</button>
         <p id="loginMsg" style="margin-top:15px; font-size:14px; color:#d32f2f;"></p>
     </div>
 </div>
 
 <div id="app-container">
-    
     <div class="header-bar">
         <div style="display:flex; align-items:center; gap:10px;">
             <div style="font-weight:700; font-size:18px; color:var(--text-main);">IMS Pro</div>
@@ -214,18 +206,13 @@
                         <div style="font-size: 24px; font-weight: 800; color: var(--success);" id="resStock"></div>
                     </div>
                 </div>
-                
                 <div style="border-top: 1px solid #bbdefb; margin-top: 15px; padding-top: 15px;">
                     <label style="margin-bottom: 5px;">Issue Quantity</label>
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display:flex; gap:10px; align-items:center;">
                             <input type="number" id="issueQty" value="1" min="1" class="control-height" style="width: 100px; font-size: 18px; font-weight: bold; text-align: center;">
-                            
-                            <button class="btn btn-accent control-height" onclick="addToCart()">
-                                <span class="material-icons">add_shopping_cart</span> Add
-                            </button>
+                            <button class="btn btn-accent control-height" onclick="addToCart()"><span class="material-icons">add_shopping_cart</span> Add</button>
                         </div>
-                        
                         <button class="btn btn-outline control-height" style="border:none; background:transparent; color: #777;" onclick="resetSearch()">Cancel</button>
                     </div>
                 </div>
@@ -237,18 +224,14 @@
                 <div class="section-title" style="margin-bottom:0; border:none;"><span class="material-icons" style="color:var(--accent);">list_alt</span> Items to Issue</div>
                 <span class="remove-link" onclick="clearCart()">Clear All</span>
             </div>
-            
             <div class="table-wrapper">
                 <table id="cartTable">
                     <thead><tr><th>Location</th><th>Model</th><th>Part No</th><th>Description</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Action</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
-
             <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-success" style="padding: 14px 30px;" onclick="submitIssue()">
-                    <span class="material-icons">check_circle</span> Finalize & Issue All
-                </button>
+                <button class="btn btn-success" style="padding: 14px 30px;" onclick="submitIssue()"><span class="material-icons">check_circle</span> Finalize & Issue All</button>
             </div>
         </div>
     </div>
@@ -256,7 +239,6 @@
     <div id="receive-tab" class="content-section">
         <div class="card">
             <div class="section-title"><span class="material-icons">add_circle_outline</span> Manual Entry</div>
-            
             <div class="grid-2">
                 <div><label>1. Location / Bin</label><input type="text" id="newLoc" placeholder="e.g. Rack A-12"></div>
                 <div><label>2. Model / Machine</label><input type="text" id="newModel" placeholder="e.g. JUKI-9000"></div>
@@ -268,14 +250,12 @@
             <div style="margin-bottom: 20px;">
                 <label>4. Description</label><input type="text" id="newDesc" placeholder="Item Name / Specification">
             </div>
-            
             <button class="btn btn-success" style="width: 100%;" onclick="receiveItem()"><span class="material-icons">save</span> Add to Inventory</button>
         </div>
 
         <div class="card" style="text-align: center; border-style: dashed; background: #fafafa;">
             <div class="section-title" style="justify-content: center; border:none; color: var(--primary);"><span class="material-icons">cloud_upload</span> Bulk Import</div>
             <p style="color: var(--text-light); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Excel Columns: <b>Location, Model, PartNo, Desc, Qty</b></p>
-            
             <div class="file-upload-wrapper">
                 <button class="file-upload-btn">Choose File</button>
                 <input type="file" id="excelFile" accept=".xlsx" onchange="updateFileName(this)">
@@ -289,16 +269,10 @@
     <div id="report-tab" class="content-section">
         <div class="card">
             <div class="section-title"><span class="material-icons">date_range</span> Reports</div>
-            
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button class="btn btn-primary" style="flex:1;" onclick="loadTransactionReport()">
-                    <span class="material-icons">history</span> History
-                </button>
-                <button class="btn btn-success" style="flex:1;" onclick="loadCurrentStockReport()">
-                    <span class="material-icons">inventory</span> Current Stock
-                </button>
+                <button class="btn btn-primary" style="flex:1;" onclick="loadTransactionReport()"><span class="material-icons">history</span> History</button>
+                <button class="btn btn-success" style="flex:1;" onclick="loadCurrentStockReport()"><span class="material-icons">inventory</span> Current Stock</button>
             </div>
-
             <div id="dateFilterBox" style="display:block; background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:20px;">
                 <label>Select Date Range for History:</label>
                 <div class="grid-2" style="margin-bottom:0;">
@@ -306,7 +280,6 @@
                     <input type="date" id="endDate">
                 </div>
             </div>
-
             <div id="stockFilterBox" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-bottom:20px;">
                 <label style="color:var(--primary);">Filter Stock List:</label>
                 <div class="grid-2" style="margin-bottom:0; grid-template-columns: 3fr 1fr;">
@@ -320,15 +293,12 @@
 
         <div class="card">
             <div id="reportLoading" style="display:none; text-align:center; padding:20px; color:var(--primary); font-weight:600;">Loading Data...</div>
-            
             <div class="table-wrapper">
                 <div style="overflow-x:auto;">
                     <table id="reportTable"><thead></thead><tbody></tbody></table>
                 </div>
             </div>
-            
             <div id="noDataMsg" class="empty-state" style="display:none;">No records found.</div>
-            
             <div style="text-align: right; margin-top: 15px;">
                 <button class="btn btn-primary" onclick="exportToExcel()"><span class="material-icons">download</span> Download Excel</button>
             </div>
@@ -338,7 +308,6 @@
     <div id="settings-tab" class="content-section">
         <div class="card">
             <div class="section-title"><span class="material-icons">lock</span> Security</div>
-            
             <div style="margin-bottom: 20px;">
                 <label>Current PIN</label>
                 <div class="password-wrapper">
@@ -346,7 +315,6 @@
                     <span class="material-icons password-toggle" onclick="togglePass('currentPass', this)">visibility</span>
                 </div>
             </div>
-
             <div style="margin-bottom: 20px;">
                 <label>New PIN (Min 10 chars)</label>
                 <div class="password-wrapper">
@@ -354,18 +322,15 @@
                     <span class="material-icons password-toggle" onclick="togglePass('newPass', this)">visibility</span>
                 </div>
             </div>
-            
             <button class="btn btn-primary" style="margin-top: 15px;" onclick="changePassword()">Save New PIN</button>
         </div>
     </div>
-
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // CONFIG
     const firebaseConfig = {
         apiKey: "AIzaSyDD-j_7VC20v4mNFmfdpEGk0yIErDF8Pv8",
         authDomain: "inventory-system-5356c.firebaseapp.com",
@@ -380,7 +345,6 @@
     const statusText = document.getElementById('statusText');
     let db; 
 
-    // INIT
     try {
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
@@ -395,7 +359,6 @@
     let inventoryCache = [];
     let activeItem = null;
     let issueCart = []; 
-    // Variable to hold data for sorting
     let currentReportData = [];
 
     function formatDate(timestamp) {
@@ -407,24 +370,21 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('startDate').value = today;
         document.getElementById('endDate').value = today;
-        document.getElementById('issueDate').value = today; // Set default issue date
+        document.getElementById('issueDate').value = today;
     });
 
-    // PASSWORD TOGGLE
     window.togglePass = (id, icon) => {
         const input = document.getElementById(id);
         if (input.type === "password") { input.type = "text"; icon.innerText = "visibility_off"; } 
         else { input.type = "password"; icon.innerText = "visibility"; }
     };
 
-    // --- ENABLE ENTER KEY FOR LOGIN ---
     document.getElementById("loginPass").addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
             login();
         }
     });
 
-    // LOGIN
     window.login = async () => {
         const factory = document.getElementById('factorySelect').value;
         const pass = document.getElementById('loginPass').value.trim();
@@ -452,38 +412,29 @@
     window.changePassword = async () => {
         const currentP = document.getElementById('currentPass').value.trim();
         const newP = document.getElementById('newPass').value.trim();
-
         if(!currentP || !newP) return alert("Please enter both current and new PINs.");
         if(newP.length < 10) return alert("New PIN must be at least 10 characters.");
-
         try {
             const credRef = doc(db, "credentials", activeFactory);
             const credSnap = await getDoc(credRef);
-            let validPassword = "1234"; // Default if not set
+            let validPassword = "1234";
             if(credSnap.exists()) validPassword = credSnap.data().pin;
-
-            if(currentP !== validPassword) {
-                return alert("Current PIN is incorrect.");
-            }
-
+            if(currentP !== validPassword) return alert("Current PIN is incorrect.");
             await setDoc(credRef, { pin: newP });
             alert("PIN Updated Successfully");
             document.getElementById('currentPass').value = "";
             document.getElementById('newPass').value = "";
-        } catch (e) {
-            console.error(e);
-            alert("Error updating PIN.");
-        }
+        } catch (e) { console.error(e); alert("Error updating PIN."); }
     };
 
+    // UPDATED: Use Sub-collections for CLEAN separation
     async function refreshInventoryCache() {
-        const q = query(collection(db, "inventory"), where("factory_id", "==", activeFactory));
+        const q = collection(db, "factories", activeFactory, "inventory");
         const snap = await getDocs(q);
         inventoryCache = [];
         snap.forEach(d => inventoryCache.push({ ...d.data(), docId: d.id }));
     }
 
-    // SEARCH
     window.liveSearch = () => {
         const text = document.getElementById('searchInput').value.trim().toUpperCase();
         const list = document.getElementById('matchesList');
@@ -536,7 +487,6 @@
         activeItem = null;
     };
 
-    // CART
     window.addToCart = () => {
         if(!activeItem) return;
         const qty = parseInt(document.getElementById('issueQty').value);
@@ -551,9 +501,7 @@
     function renderCart() {
         const section = document.getElementById('cartSection');
         const tbody = document.querySelector("#cartTable tbody");
-        
         if(issueCart.length === 0) { section.style.display = "none"; return; }
-        
         section.style.display = "block";
         tbody.innerHTML = "";
         issueCart.forEach((item, index) => {
@@ -578,18 +526,16 @@
         renderCart();
     };
 
-    // SUBMIT ISSUE
+    // UPDATED: Submit to Sub-collections
     window.submitIssue = async () => {
         const mr = document.getElementById('issueMR').value.trim();
         const emp = document.getElementById('issueEmp').value.trim();
         const dept = document.getElementById('issueDept').value.trim();
-        // Get selected date
         const dateInput = document.getElementById('issueDate').value;
         
         if(!mr || !emp || !dept) return alert("Please fill MR No, Employee ID, and Department.");
         if(issueCart.length === 0) return alert("Cart is empty");
         
-        // Use selected date or fallback to now
         let txDate = Timestamp.now();
         if(dateInput) {
              const d = new Date(dateInput);
@@ -601,21 +547,23 @@
 
         try {
             for (const item of issueCart) {
-                const ref = doc(db, "inventory", item.docId);
+                // Point to NEW sub-collection path
+                const ref = doc(db, "factories", activeFactory, "inventory", item.docId);
                 const snap = await getDoc(ref);
                 if(snap.exists()) {
                     let current = snap.data().current_stock;
                     if(current >= item.issueQty) {
                         await updateDoc(ref, { current_stock: current - item.issueQty });
-                        await addDoc(collection(db, "transactions"), {
-                            factory_id: activeFactory,
+                        // Add transaction to sub-collection
+                        await addDoc(collection(db, "factories", activeFactory, "transactions"), {
                             part_number: item.part_number,
                             description: item.description,
                             model: item.model || "",
                             location: item.location || "",
                             mr_no: mr, emp: emp, dept: dept,
                             qty_issued: item.issueQty,
-                            date: txDate // Use selected date
+                            date: txDate,
+                            factory_id: activeFactory 
                         });
                     }
                 }
@@ -626,22 +574,22 @@
             document.getElementById('issueEmp').value = "";
             document.getElementById('issueDept').value = "";
             refreshInventoryCache();
-        } catch(e) {
-            console.error(e);
-            alert("Error processing transaction.");
-        }
+        } catch(e) { console.error(e); alert("Error processing transaction."); }
     };
 
-    // ADD STOCK (MANUAL)
+    // UPDATED: Add to Sub-collection
     window.receiveItem = async () => {
         let pNo = document.getElementById('newPartNo').value.trim().toUpperCase();
         const qty = parseInt(document.getElementById('newQty').value);
         if(!pNo) pNo = "GEN-" + Date.now();
-        const ref = doc(db, "inventory", `${activeFactory}_${pNo}`);
+        
+        // NEW PATH: factories/{ID}/inventory/{PartNo}
+        const ref = doc(db, "factories", activeFactory, "inventory", pNo);
         const snap = await getDoc(ref);
         
         const data = {
-            part_number: pNo, factory_id: activeFactory, 
+            part_number: pNo, 
+            factory_id: activeFactory, 
             location: document.getElementById('newLoc').value,
             model: document.getElementById('newModel').value, 
             description: document.getElementById('newDesc').value, 
@@ -658,7 +606,7 @@
         refreshInventoryCache();
     };
 
-    // EXCEL IMPORT (Prioritizes Location -> Model -> PartNo -> Desc -> Qty)
+    // UPDATED: Import to Sub-collection
     window.importFromExcel = () => {
         const file = document.getElementById('excelFile').files[0];
         if(!file) return alert("Select File");
@@ -678,7 +626,9 @@
 
                 if((pNo || desc) && qty > 0) {
                     if(!pNo) pNo = "GEN-" + Math.random().toString(36).substr(2,9).toUpperCase();
-                    const ref = doc(db, "inventory", `${activeFactory}_${pNo}`);
+                    
+                    // NEW PATH
+                    const ref = doc(db, "factories", activeFactory, "inventory", pNo);
                     const s = await getDoc(ref);
                     
                     if(s.exists()) await updateDoc(ref, { current_stock: s.data().current_stock + qty });
@@ -696,9 +646,7 @@
         reader.readAsArrayBuffer(file);
     };
 
-    // --- REPORT: CURRENT STOCK ---
     window.loadCurrentStockReport = () => {
-        // UI TOGGLES
         document.getElementById("dateFilterBox").style.display = "none";
         document.getElementById("stockFilterBox").style.display = "block";
         document.getElementById("noDataMsg").style.display = "none";
@@ -713,7 +661,6 @@
                 <th onclick="sortStock('current_stock')">Stock ⬍</th>
             </tr>`;
         
-        // Load data locally for filtering
         currentReportData = [...inventoryCache]; 
         renderStockTable(currentReportData);
     };
@@ -721,8 +668,6 @@
     window.renderStockTable = (data) => {
         const tb = document.querySelector("#reportTable tbody");
         tb.innerHTML = "";
-        
-        // Update Count
         document.getElementById("stockCount").innerText = data.length;
 
         if(data.length === 0) {
@@ -741,7 +686,6 @@
         });
     }
 
-    // --- FILTER FUNCTION ---
     window.filterStockReport = () => {
         const val = document.getElementById("stockSearchInput").value.toUpperCase();
         const filtered = inventoryCache.filter(i => 
@@ -754,27 +698,20 @@
         renderStockTable(filtered);
     }
 
-    // --- SORT FUNCTION ---
     let sortDir = 1;
     window.sortStock = (key) => {
-        sortDir = -sortDir; // Toggle asc/desc
+        sortDir = -sortDir; 
         currentReportData.sort((a, b) => {
             let valA = a[key] || "";
             let valB = b[key] || "";
-            
-            // Number sort for stock
-            if(key === 'current_stock') {
-                return (a[key] - b[key]) * sortDir;
-            }
-            // String sort for others
+            if(key === 'current_stock') return (a[key] - b[key]) * sortDir;
             return valA.toString().localeCompare(valB.toString()) * sortDir;
         });
         renderStockTable(currentReportData);
     }
 
-    // --- REPORT: HISTORY ---
+    // UPDATED: Read Transactions from Sub-collection
     window.loadTransactionReport = async () => {
-        // UI TOGGLES
         document.getElementById("dateFilterBox").style.display = "block";
         document.getElementById("stockFilterBox").style.display = "none";
         
@@ -784,7 +721,8 @@
         loading.style.display = "block";
         document.querySelector("#reportTable tbody").innerHTML = "";
 
-        const q = query(collection(db, "transactions"), where("factory_id", "==", activeFactory));
+        // NEW PATH
+        const q = collection(db, "factories", activeFactory, "transactions");
         const snap = await getDocs(q);
         const docs = [];
         const start = new Date(sVal); const end = new Date(eVal); end.setHours(23,59,59);
