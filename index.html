@@ -331,6 +331,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    // CONFIG
     const firebaseConfig = {
         apiKey: "AIzaSyDD-j_7VC20v4mNFmfdpEGk0yIErDF8Pv8",
         authDomain: "inventory-system-5356c.firebaseapp.com",
@@ -364,6 +365,22 @@
     function formatDate(timestamp) {
         if (!timestamp) return '-';
         return timestamp.toDate().toLocaleDateString();
+    }
+
+    // --- SMART ID GENERATION (PREVENTS DUPLICATES) ---
+    function generateSmartId(partNo, desc, model) {
+        if (partNo && partNo.length > 1) {
+            return partNo.replace(/[^a-zA-Z0-9-_]/g, '').toUpperCase();
+        } 
+        
+        const cleanDesc = (desc || "").replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        const cleanModel = (model || "").replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        
+        if (cleanDesc.length < 3) {
+            return "GEN-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+
+        return `GEN_${cleanModel}_${cleanDesc}`.substring(0, 50);
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -427,7 +444,7 @@
         } catch (e) { console.error(e); alert("Error updating PIN."); }
     };
 
-    // UPDATED: Use Sub-collections for CLEAN separation
+    // --- REFRESH INVENTORY (SUB-COLLECTION) ---
     async function refreshInventoryCache() {
         const q = collection(db, "factories", activeFactory, "inventory");
         const snap = await getDocs(q);
@@ -526,7 +543,7 @@
         renderCart();
     };
 
-    // UPDATED: Submit to Sub-collections
+    // --- SUBMIT ISSUE (WITH DATE & SUB-COLLECTION) ---
     window.submitIssue = async () => {
         const mr = document.getElementById('issueMR').value.trim();
         const emp = document.getElementById('issueEmp').value.trim();
@@ -547,14 +564,12 @@
 
         try {
             for (const item of issueCart) {
-                // Point to NEW sub-collection path
                 const ref = doc(db, "factories", activeFactory, "inventory", item.docId);
                 const snap = await getDoc(ref);
                 if(snap.exists()) {
                     let current = snap.data().current_stock;
                     if(current >= item.issueQty) {
                         await updateDoc(ref, { current_stock: current - item.issueQty });
-                        // Add transaction to sub-collection
                         await addDoc(collection(db, "factories", activeFactory, "transactions"), {
                             part_number: item.part_number,
                             description: item.description,
@@ -577,44 +592,55 @@
         } catch(e) { console.error(e); alert("Error processing transaction."); }
     };
 
-    // UPDATED: Add to Sub-collection
+    // --- ADD STOCK (MANUAL + DUPLICATE CHECK) ---
     window.receiveItem = async () => {
-        let pNo = document.getElementById('newPartNo').value.trim().toUpperCase();
+        let pNoRaw = document.getElementById('newPartNo').value.trim().toUpperCase();
+        let desc = document.getElementById('newDesc').value.trim();
+        let model = document.getElementById('newModel').value.trim();
         const qty = parseInt(document.getElementById('newQty').value);
-        if(!pNo) pNo = "GEN-" + Date.now();
+
+        if(!desc && !pNoRaw) return alert("Description or Part No required.");
         
-        // NEW PATH: factories/{ID}/inventory/{PartNo}
-        const ref = doc(db, "factories", activeFactory, "inventory", pNo);
+        const docId = generateSmartId(pNoRaw, desc, model);
+        const finalPNo = (pNoRaw && pNoRaw.length > 0) ? pNoRaw : docId;
+
+        const ref = doc(db, "factories", activeFactory, "inventory", docId);
         const snap = await getDoc(ref);
         
-        const data = {
-            part_number: pNo, 
-            factory_id: activeFactory, 
-            location: document.getElementById('newLoc').value,
-            model: document.getElementById('newModel').value, 
-            description: document.getElementById('newDesc').value, 
-            current_stock: qty
-        };
-
-        if(snap.exists()) await updateDoc(ref, { current_stock: snap.data().current_stock + qty });
-        else {
-            if(!data.description) return alert("Description is required");
+        if(snap.exists()) {
+            await updateDoc(ref, { current_stock: snap.data().current_stock + qty });
+            alert(`Item Exists! Stock updated. New Total: ${snap.data().current_stock + qty}`);
+        } else {
+            const data = {
+                part_number: finalPNo, 
+                factory_id: activeFactory, 
+                location: document.getElementById('newLoc').value,
+                model: model, 
+                description: desc, 
+                current_stock: qty
+            };
             await setDoc(ref, data);
+            alert("New Item Created Successfully!");
         }
-        alert("Stock Updated!"); 
+        
         document.getElementById('newPartNo').value = "";
+        document.getElementById('newDesc').value = ""; 
+        document.getElementById('newQty').value = "1";
         refreshInventoryCache();
     };
 
-    // UPDATED: Import to Sub-collection
+    // --- IMPORT EXCEL (MANUAL + DUPLICATE CHECK) ---
     window.importFromExcel = () => {
         const file = document.getElementById('excelFile').files[0];
         if(!file) return alert("Select File");
         const reader = new FileReader();
+        
         reader.onload = async (e) => {
             const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
             const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
             let count = 0;
+            let updatedCount = 0;
+
             for(let row of raw) {
                 let clean = {}; Object.keys(row).forEach(k => clean[k.toLowerCase().replace(/[\s\-_.]/g, "")] = row[k]);
                 
@@ -625,22 +651,26 @@
                 let desc = clean['desc'] || clean['description'] || "";
 
                 if((pNo || desc) && qty > 0) {
-                    if(!pNo) pNo = "GEN-" + Math.random().toString(36).substr(2,9).toUpperCase();
-                    
-                    // NEW PATH
-                    const ref = doc(db, "factories", activeFactory, "inventory", pNo);
+                    const docId = generateSmartId(pNo, desc, model);
+                    const finalPNo = (pNo && pNo.length > 0) ? pNo : docId;
+
+                    const ref = doc(db, "factories", activeFactory, "inventory", docId);
                     const s = await getDoc(ref);
                     
-                    if(s.exists()) await updateDoc(ref, { current_stock: s.data().current_stock + qty });
-                    else await setDoc(ref, { 
-                        part_number: pNo, factory_id: activeFactory, 
-                        description: desc, model: model, location: loc,
-                        current_stock: qty 
-                    });
-                    count++;
+                    if(s.exists()) {
+                        await updateDoc(ref, { current_stock: s.data().current_stock + qty });
+                        updatedCount++;
+                    } else {
+                        await setDoc(ref, { 
+                            part_number: finalPNo, factory_id: activeFactory, 
+                            description: desc, model: model, location: loc,
+                            current_stock: qty 
+                        });
+                        count++;
+                    }
                 }
             }
-            alert(`Imported ${count} items successfully.`); 
+            alert(`Complete!\nNew Items Created: ${count}\nExisting Items Updated: ${updatedCount}`); 
             refreshInventoryCache();
         };
         reader.readAsArrayBuffer(file);
@@ -710,7 +740,6 @@
         renderStockTable(currentReportData);
     }
 
-    // UPDATED: Read Transactions from Sub-collection
     window.loadTransactionReport = async () => {
         document.getElementById("dateFilterBox").style.display = "block";
         document.getElementById("stockFilterBox").style.display = "none";
@@ -721,7 +750,6 @@
         loading.style.display = "block";
         document.querySelector("#reportTable tbody").innerHTML = "";
 
-        // NEW PATH
         const q = collection(db, "factories", activeFactory, "transactions");
         const snap = await getDocs(q);
         const docs = [];
