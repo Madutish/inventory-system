@@ -94,7 +94,8 @@
         .search-item:hover { background: #f5f9ff; }
         .item-main { font-weight: 600; color: var(--primary); }
         .item-sub { font-size: 12px; color: var(--text-light); }
-        .loc-tag { background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid #ffe0b2; }
+        .loc-tag { background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid #ffe0b2; margin-right: 5px; }
+        .seq-tag { background: #e8eaf6; color: #3f51b5; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid #c5cae9; }
 
         /* TABLES & CART */
         .table-wrapper { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
@@ -199,7 +200,10 @@
                     <div>
                         <div style="font-size: 18px; font-weight: 700; color: var(--text-main);" id="resPart"></div>
                         <div style="color: var(--text-light); margin-top: 4px;" id="resDesc"></div>
-                        <div style="margin-top: 8px;"><span class="loc-tag" id="resLoc"></span></div>
+                        <div style="margin-top: 8px;">
+                            <span class="loc-tag" id="resLoc"></span>
+                            <span class="seq-tag" id="resSeq" style="display:none;"></span>
+                        </div>
                     </div>
                     <div style="text-align: right;">
                         <label>Stock</label>
@@ -226,7 +230,7 @@
             </div>
             <div class="table-wrapper">
                 <table id="cartTable">
-                    <thead><tr><th>Location</th><th>Model</th><th>Part No</th><th>Description</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Action</th></tr></thead>
+                    <thead><tr><th>Location</th><th>Seq</th><th>Model</th><th>Part No</th><th>Description</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Action</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -239,23 +243,24 @@
     <div id="receive-tab" class="content-section">
         <div class="card">
             <div class="section-title"><span class="material-icons">add_circle_outline</span> Manual Entry</div>
-            <div class="grid-2">
+            <div class="grid-3">
                 <div><label>1. Location / Bin</label><input type="text" id="newLoc" placeholder="e.g. Rack A-12"></div>
-                <div><label>2. Model / Machine</label><input type="text" id="newModel" placeholder="e.g. JUKI-9000"></div>
+                <div><label>2. Sequence No</label><input type="text" id="newSequNum" placeholder="e.g. 001, A-1"></div>
+                <div><label>3. Model / Machine</label><input type="text" id="newModel" placeholder="e.g. JUKI-9000"></div>
             </div>
             <div class="grid-3">
-                <div style="grid-column: span 2;"><label>3. Part Number</label><input type="text" id="newPartNo" placeholder="Scan or Type Part No"></div>
-                <div><label>5. Quantity</label><input type="number" id="newQty" value="1" style="font-weight: bold;"></div>
+                <div style="grid-column: span 2;"><label>4. Part Number</label><input type="text" id="newPartNo" placeholder="Scan or Type Part No"></div>
+                <div><label>6. Quantity</label><input type="number" id="newQty" value="1" style="font-weight: bold;"></div>
             </div>
             <div style="margin-bottom: 20px;">
-                <label>4. Description</label><input type="text" id="newDesc" placeholder="Item Name / Specification">
+                <label>5. Description</label><input type="text" id="newDesc" placeholder="Item Name / Specification">
             </div>
             <button class="btn btn-success" style="width: 100%;" onclick="receiveItem()"><span class="material-icons">save</span> Add to Inventory</button>
         </div>
 
         <div class="card" style="text-align: center; border-style: dashed; background: #fafafa;">
             <div class="section-title" style="justify-content: center; border:none; color: var(--primary);"><span class="material-icons">cloud_upload</span> Bulk Import</div>
-            <p style="color: var(--text-light); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Excel Columns: <b>Location, Model, PartNo, Desc, Qty</b></p>
+            <p style="color: var(--text-light); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Excel Columns: <b>Location, SeqNo, Model, PartNo, Desc, Qty</b></p>
             <div class="file-upload-wrapper">
                 <button class="file-upload-btn">Choose File</button>
                 <input type="file" id="excelFile" accept=".xlsx" onchange="updateFileName(this)">
@@ -283,7 +288,7 @@
             <div id="stockFilterBox" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-bottom:20px;">
                 <label style="color:var(--primary);">Filter Stock List:</label>
                 <div class="grid-2" style="margin-bottom:0; grid-template-columns: 3fr 1fr;">
-                    <input type="text" id="stockSearchInput" placeholder="Filter by Brand, Model, Part No..." onkeyup="filterStockReport()">
+                    <input type="text" id="stockSearchInput" placeholder="Filter by Brand, Model, Part No, Seq..." onkeyup="filterStockReport()">
                     <div style="align-self:center; text-align:right; font-weight:600; color:var(--primary);">
                         <span id="stockCount">0</span> Items
                     </div>
@@ -367,20 +372,28 @@
         return timestamp.toDate().toLocaleDateString();
     }
 
-    // --- SMART ID GENERATION (PREVENTS DUPLICATES) ---
-    function generateSmartId(partNo, desc, model) {
+    // --- SMART ID GENERATION (INCLUDES SEQUENCE NUMBER) ---
+    function generateSmartId(partNo, desc, model, sequNum) {
+        let baseId = "";
+        
         if (partNo && partNo.length > 1) {
-            return partNo.replace(/[^a-zA-Z0-9-_]/g, '').toUpperCase();
-        } 
-        
-        const cleanDesc = (desc || "").replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-        const cleanModel = (model || "").replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-        
-        if (cleanDesc.length < 3) {
-            return "GEN-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+            baseId = partNo.replace(/[^a-zA-Z0-9-_]/g, '').toUpperCase();
+        } else {
+            const cleanDesc = (desc || "").replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            const cleanModel = (model || "").replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            if (cleanDesc.length < 3) {
+                 baseId = "GEN-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+            } else {
+                 baseId = `GEN_${cleanModel}_${cleanDesc}`.substring(0, 40);
+            }
         }
 
-        return `GEN_${cleanModel}_${cleanDesc}`.substring(0, 50);
+        if(sequNum && sequNum.length > 0) {
+            const cleanSeq = sequNum.replace(/[^a-zA-Z0-9-_]/g, '').toUpperCase();
+            return `${baseId}_SEQ${cleanSeq}`;
+        }
+
+        return baseId;
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -444,7 +457,6 @@
         } catch (e) { console.error(e); alert("Error updating PIN."); }
     };
 
-    // --- REFRESH INVENTORY (SUB-COLLECTION) ---
     async function refreshInventoryCache() {
         const q = collection(db, "factories", activeFactory, "inventory");
         const snap = await getDocs(q);
@@ -464,7 +476,8 @@
             (i.part_number||"").includes(text) || 
             (i.description||"").toUpperCase().includes(text) ||
             (i.model||"").toUpperCase().includes(text) ||
-            (i.location||"").toUpperCase().includes(text)
+            (i.location||"").toUpperCase().includes(text) ||
+            (i.sequ_num||"").toUpperCase().includes(text)
         );
 
         list.style.display = "block";
@@ -473,9 +486,10 @@
             const d = document.createElement('div');
             d.className = 'search-item';
             const loc = i.location || "N/A";
+            const seqHtml = i.sequ_num ? `<span class="seq-tag">SEQ: ${i.sequ_num}</span>` : "";
             d.innerHTML = `
                 <div>
-                    <div class="item-main">${i.part_number} <span class="loc-tag">${loc}</span></div>
+                    <div class="item-main">${i.part_number} <span class="loc-tag">${loc}</span>${seqHtml}</div>
                     <div class="item-sub">${i.description} ${i.model ? '| ' + i.model : ''}</div>
                 </div>
                 <div style="font-weight:bold; color:${i.current_stock < 5 ? 'var(--danger)' : 'var(--success)'}">${i.current_stock}</div>
@@ -493,6 +507,15 @@
         document.getElementById('resPart').innerText = `${i.part_number}`;
         document.getElementById('resDesc').innerText = `${i.description} ${i.model ? '| ' + i.model : ''}`;
         document.getElementById('resLoc').innerText = i.location ? `LOC: ${i.location}` : "LOC: N/A";
+        
+        const seqEl = document.getElementById('resSeq');
+        if(i.sequ_num) {
+            seqEl.innerText = `SEQ: ${i.sequ_num}`;
+            seqEl.style.display = "inline-block";
+        } else {
+            seqEl.style.display = "none";
+        }
+
         document.getElementById('resStock').innerText = i.current_stock;
         document.getElementById('issueQty').max = i.current_stock;
         document.getElementById('issueQty').value = 1;
@@ -524,6 +547,7 @@
         issueCart.forEach((item, index) => {
             tbody.innerHTML += `<tr>
                 <td style="color:var(--primary); font-weight:600;">${item.location||'-'}</td>
+                <td><span class="seq-tag">${item.sequ_num||'-'}</span></td>
                 <td>${item.model||'-'}</td>
                 <td>${item.part_number}</td>
                 <td>${item.description}</td>
@@ -543,7 +567,6 @@
         renderCart();
     };
 
-    // --- SUBMIT ISSUE (WITH DATE & SUB-COLLECTION) ---
     window.submitIssue = async () => {
         const mr = document.getElementById('issueMR').value.trim();
         const emp = document.getElementById('issueEmp').value.trim();
@@ -575,6 +598,7 @@
                             description: item.description,
                             model: item.model || "",
                             location: item.location || "",
+                            sequ_num: item.sequ_num || "",
                             mr_no: mr, emp: emp, dept: dept,
                             qty_issued: item.issueQty,
                             date: txDate,
@@ -592,16 +616,17 @@
         } catch(e) { console.error(e); alert("Error processing transaction."); }
     };
 
-    // --- ADD STOCK (MANUAL + DUPLICATE CHECK) ---
+    // --- ADD STOCK WITH SEQUENCE NUMBER ---
     window.receiveItem = async () => {
         let pNoRaw = document.getElementById('newPartNo').value.trim().toUpperCase();
         let desc = document.getElementById('newDesc').value.trim();
         let model = document.getElementById('newModel').value.trim();
+        let sequNum = document.getElementById('newSequNum').value.trim(); 
         const qty = parseInt(document.getElementById('newQty').value);
 
         if(!desc && !pNoRaw) return alert("Description or Part No required.");
         
-        const docId = generateSmartId(pNoRaw, desc, model);
+        const docId = generateSmartId(pNoRaw, desc, model, sequNum);
         const finalPNo = (pNoRaw && pNoRaw.length > 0) ? pNoRaw : docId;
 
         const ref = doc(db, "factories", activeFactory, "inventory", docId);
@@ -615,7 +640,8 @@
                 part_number: finalPNo, 
                 factory_id: activeFactory, 
                 location: document.getElementById('newLoc').value,
-                model: model, 
+                model: model,
+                sequ_num: sequNum,
                 description: desc, 
                 current_stock: qty
             };
@@ -625,11 +651,12 @@
         
         document.getElementById('newPartNo').value = "";
         document.getElementById('newDesc').value = ""; 
+        document.getElementById('newSequNum').value = "";
         document.getElementById('newQty').value = "1";
         refreshInventoryCache();
     };
 
-    // --- IMPORT EXCEL (MANUAL + DUPLICATE CHECK) ---
+    // --- IMPORT FROM EXCEL WITH SEQUENCE NUMBER ---
     window.importFromExcel = () => {
         const file = document.getElementById('excelFile').files[0];
         if(!file) return alert("Select File");
@@ -649,9 +676,10 @@
                 let loc = clean['location'] || clean['loc'] || clean['bin'] || ""; 
                 let model = clean['model'] || clean['machine'] || "";
                 let desc = clean['desc'] || clean['description'] || "";
+                let sequNum = String(clean['sequnum']||clean['seq']||clean['sequence']||clean['seqno']||"").trim(); 
 
                 if((pNo || desc) && qty > 0) {
-                    const docId = generateSmartId(pNo, desc, model);
+                    const docId = generateSmartId(pNo, desc, model, sequNum);
                     const finalPNo = (pNo && pNo.length > 0) ? pNo : docId;
 
                     const ref = doc(db, "factories", activeFactory, "inventory", docId);
@@ -664,6 +692,7 @@
                         await setDoc(ref, { 
                             part_number: finalPNo, factory_id: activeFactory, 
                             description: desc, model: model, location: loc,
+                            sequ_num: sequNum,
                             current_stock: qty 
                         });
                         count++;
@@ -676,16 +705,19 @@
         reader.readAsArrayBuffer(file);
     };
 
+    // --- REPORTS WITH REORDERED SEQ NO ---
     window.loadCurrentStockReport = () => {
         document.getElementById("dateFilterBox").style.display = "none";
         document.getElementById("stockFilterBox").style.display = "block";
         document.getElementById("noDataMsg").style.display = "none";
         
         const thead = document.querySelector("#reportTable thead");
+        // UPDATED: Location -> Seq No -> Model
         thead.innerHTML = `
             <tr>
                 <th onclick="sortStock('location')">Location ⬍</th>
-                <th onclick="sortStock('model')">Model / Brand ⬍</th>
+                <th onclick="sortStock('sequ_num')">Seq No ⬍</th>
+                <th onclick="sortStock('model')">Model ⬍</th>
                 <th onclick="sortStock('part_number')">Part No ⬍</th>
                 <th onclick="sortStock('description')">Description ⬍</th>
                 <th onclick="sortStock('current_stock')">Stock ⬍</th>
@@ -701,13 +733,15 @@
         document.getElementById("stockCount").innerText = data.length;
 
         if(data.length === 0) {
-            tb.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px;'>No matching items</td></tr>";
+            tb.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px;'>No matching items</td></tr>";
             return;
         }
 
         data.forEach(d => {
+            // UPDATED: Location -> Seq No -> Model
             tb.innerHTML += `<tr>
                 <td style="color:var(--accent); font-weight:600;">${d.location||'-'}</td>
+                <td><span class="seq-tag">${d.sequ_num||'-'}</span></td>
                 <td>${d.model||'-'}</td>
                 <td>${d.part_number}</td>
                 <td>${d.description}</td>
@@ -722,7 +756,8 @@
             (i.part_number||"").includes(val) || 
             (i.model||"").toUpperCase().includes(val) || 
             (i.description||"").toUpperCase().includes(val) ||
-            (i.location||"").toUpperCase().includes(val)
+            (i.location||"").toUpperCase().includes(val) ||
+            (i.sequ_num||"").toUpperCase().includes(val)
         );
         currentReportData = filtered;
         renderStockTable(filtered);
@@ -767,7 +802,7 @@
 
         const tb = document.querySelector("#reportTable tbody");
         const thead = document.querySelector("#reportTable thead");
-        thead.innerHTML = "<tr><th>Date</th><th>MR No</th><th>Issued To</th><th>Item</th><th>Qty</th></tr>";
+        thead.innerHTML = "<tr><th>Date</th><th>MR No</th><th>Issued To</th><th>Item</th><th>Seq</th><th>Qty</th></tr>";
         
         docs.forEach(v => {
             tb.innerHTML += `<tr>
@@ -775,6 +810,7 @@
                 <td>${v.mr_no}</td>
                 <td>${v.emp}<br><small style="color:#999;">${v.dept}</small></td>
                 <td>${v.part_number}<br><small style="color:#666;">${v.description}</small></td>
+                <td>${v.sequ_num||'-'}</td>
                 <td style="font-weight:bold;">${v.qty_issued}</td>
             </tr>`;
         });
