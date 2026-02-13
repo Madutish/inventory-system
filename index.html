@@ -197,7 +197,7 @@
             </div>
             <div class="dash-card">
                 <div class="dash-icon" style="background:#ffe0b2; color:#ef6c00;"><span class="material-icons">warning</span></div>
-                <div class="dash-info"><h3>Low Stock (< 5)</h3><p id="dashLowStock" style="color:#ef6c00;">0</p></div>
+                <div class="dash-info"><h3>Low Stock</h3><p id="dashLowStock" style="color:#ef6c00;">0</p></div>
             </div>
             <div class="dash-card">
                 <div class="dash-icon" style="background:#e8f5e9; color:#2e7d32;"><span class="material-icons">inventory_2</span></div>
@@ -542,11 +542,21 @@
         loadDashboard();
     }
 
+    // --- HELPER: GET MIN STOCK LEVEL ---
+    // If Model contains "NEEDLE" -> 200, else -> 5
+    function getMinStockLimit(item) {
+        const model = (item.model || "").toUpperCase();
+        if(model.includes("NEEDLE")) return 200;
+        return 5;
+    }
+
     // --- DASHBOARD FUNCTIONS ---
     async function loadDashboard() {
         const totalItems = inventoryCache.length;
         const itemsInStock = inventoryCache.filter(item => item.current_stock > 0).length;
-        const lowStockItems = inventoryCache.filter(item => item.current_stock <= 5);
+        
+        // Filter based on Dynamic Limit (Needle 200, Other 5)
+        const lowStockItems = inventoryCache.filter(item => item.current_stock <= getMinStockLimit(item));
         
         document.getElementById('dashTotalItems').innerText = totalItems;
         document.getElementById('dashTotalQty').innerText = itemsInStock; 
@@ -597,7 +607,7 @@
         } catch(e) { console.log("Dash History Error", e); }
     }
 
-    // --- NEW: ADVANCED SEARCH FUNCTIONS ---
+    // --- ADVANCED SEARCH FUNCTIONS ---
     window.performAdvancedSearch = () => {
         const model = document.getElementById('advModel').value.trim().toUpperCase();
         const partNo = document.getElementById('advPartNo').value.trim().toUpperCase();
@@ -608,7 +618,6 @@
             return;
         }
 
-        // Filter based on ALL conditions (AND logic)
         const results = inventoryCache.filter(item => {
             let matches = true;
             if (model && !(item.model || "").toUpperCase().includes(model)) matches = false;
@@ -632,13 +641,17 @@
         }
 
         data.forEach(d => {
+            // Apply Dynamic Color Logic here too
+            const isLow = d.current_stock <= getMinStockLimit(d);
+            const color = isLow ? 'var(--danger)' : 'var(--success)';
+
             tb.innerHTML += `<tr>
                 <td>${d.location||'-'}</td>
                 <td><span class="seq-tag">${d.sequ_num||'-'}</span></td>
                 <td>${d.model||'-'}</td>
                 <td style="font-weight:600;">${d.part_number}</td>
                 <td>${d.description}</td>
-                <td style="font-weight:bold; text-align:right; color:${d.current_stock < 5 ? 'var(--danger)' : 'var(--success)'}">${d.current_stock}</td>
+                <td style="font-weight:bold; text-align:right; color:${color}">${d.current_stock}</td>
             </tr>`;
         });
     };
@@ -675,12 +688,16 @@
             d.className = 'search-item';
             const loc = i.location || "N/A";
             const seqHtml = i.sequ_num ? `<span class="seq-tag">SEQ: ${i.sequ_num}</span>` : "";
+            // Apply Dynamic Color Logic
+            const isLow = i.current_stock <= getMinStockLimit(i);
+            const color = isLow ? 'var(--danger)' : 'var(--success)';
+
             d.innerHTML = `
                 <div>
                     <div class="item-main">${i.part_number} <span class="loc-tag">${loc}</span>${seqHtml}</div>
                     <div class="item-sub">${i.description} ${i.model ? '| ' + i.model : ''}</div>
                 </div>
-                <div style="font-weight:bold; color:${i.current_stock < 5 ? 'var(--danger)' : 'var(--success)'}">${i.current_stock}</div>
+                <div style="font-weight:bold; color:${color}">${i.current_stock}</div>
             `;
             d.onclick = () => selectItem(i);
             list.appendChild(d);
@@ -922,13 +939,17 @@
         }
 
         data.forEach(d => {
+            // Apply Dynamic Color Logic
+            const isLow = d.current_stock <= getMinStockLimit(d);
+            const color = isLow ? 'var(--danger)' : 'var(--success)';
+
             tb.innerHTML += `<tr>
                 <td style="color:var(--accent); font-weight:600;">${d.location||'-'}</td>
                 <td><span class="seq-tag">${d.sequ_num||'-'}</span></td>
                 <td>${d.model||'-'}</td>
                 <td>${d.part_number}</td>
                 <td>${d.description}</td>
-                <td style="font-weight:bold; color:${d.current_stock < 5 ? 'var(--danger)' : 'var(--success)'}">${d.current_stock}</td>
+                <td style="font-weight:bold; color:${color}">${d.current_stock}</td>
             </tr>`;
         });
     }
