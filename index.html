@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMT - Mechanical Inventory </title>
+    <title>Factory Inventory Pro</title>
     
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -111,6 +111,12 @@
 
         /* TABLES & CART */
         .table-wrapper { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        
+        /* DASHBOARD SPECIFIC SCROLLABLE TABLES */
+        .dash-table-container { max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+        .dash-table-container th { position: sticky; top: 0; z-index: 10; background: #f8f9fa; border-bottom: 2px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .dash-table-container table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        
         table { width: 100%; border-collapse: collapse; font-size: 14px; }
         th { background: #f8f9fa; color: var(--text-light); font-weight: 600; padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
         th:hover { background: #e3f2fd; color: var(--primary); }
@@ -206,8 +212,11 @@
         </div>
 
         <div class="card" style="border-top: 5px solid var(--accent);">
-            <div class="section-title"><span class="material-icons" style="color:var(--accent);">notification_important</span> Re-Order Alerts (Low Stock)</div>
-            <div class="table-wrapper">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div class="section-title" style="margin-bottom: 0; border: none; padding-bottom: 0;"><span class="material-icons" style="color:var(--accent);">notification_important</span> Re-Order Alerts (Low Stock)</div>
+                <button class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;" onclick="exportLowStockToExcel()"><span class="material-icons" style="font-size: 18px;">download</span> Export List</button>
+            </div>
+            <div class="dash-table-container">
                 <table id="alertTable">
                     <thead><tr><th>Location</th><th>Seq</th><th>Model</th><th>Part No</th><th>Description</th><th style="text-align:right;">Current Stock</th></tr></thead>
                     <tbody></tbody>
@@ -217,7 +226,7 @@
 
         <div class="card">
             <div class="section-title"><span class="material-icons">history</span> Recent Activity</div>
-            <div class="table-wrapper">
+            <div class="dash-table-container">
                 <table id="dashHistoryTable">
                     <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Qty</th></tr></thead>
                     <tbody></tbody>
@@ -355,13 +364,16 @@
                 <button class="btn btn-primary" style="flex:1;" onclick="loadTransactionReport()"><span class="material-icons">history</span> History</button>
                 <button class="btn btn-success" style="flex:1;" onclick="loadCurrentStockReport()"><span class="material-icons">inventory</span> Current Stock</button>
             </div>
+            
             <div id="dateFilterBox" style="display:block; background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:20px;">
-                <label>Select Date Range for History:</label>
-                <div class="grid-2" style="margin-bottom:0;">
-                    <input type="date" id="startDate">
-                    <input type="date" id="endDate">
+                <label>Filter History (Date Range & Search):</label>
+                <div class="grid-3" style="margin-bottom:0;">
+                    <input type="date" id="startDate" onchange="loadTransactionReport()">
+                    <input type="date" id="endDate" onchange="loadTransactionReport()">
+                    <input type="text" id="historySearchInput" placeholder="Search Ref No, MR No, Emp..." onkeyup="filterHistoryReport()">
                 </div>
             </div>
+
             <div id="stockFilterBox" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-bottom:20px;">
                 <label style="color:var(--primary);">Filter Stock List:</label>
                 <div class="grid-2" style="margin-bottom:0; grid-template-columns: 3fr 1fr;">
@@ -443,13 +455,14 @@
     let activeItem = null;
     let issueCart = []; 
     let currentReportData = [];
+    let currentHistoryData = []; 
 
     function formatDate(timestamp) {
         if (!timestamp) return '-';
         return timestamp.toDate().toLocaleDateString();
     }
 
-    // --- SMART ID GENERATION (INCLUDES SEQUENCE NUMBER) ---
+    // --- SMART ID GENERATION ---
     function generateSmartId(partNo, desc, model, sequNum) {
         let baseId = "";
         
@@ -543,7 +556,6 @@
     }
 
     // --- HELPER: GET MIN STOCK LEVEL ---
-    // If Model contains "NEEDLE" -> 200, else -> 5
     function getMinStockLimit(item) {
         const model = (item.model || "").toUpperCase();
         if(model.includes("NEEDLE")) return 200;
@@ -554,8 +566,6 @@
     async function loadDashboard() {
         const totalItems = inventoryCache.length;
         const itemsInStock = inventoryCache.filter(item => item.current_stock > 0).length;
-        
-        // Filter based on Dynamic Limit (Needle 200, Other 5)
         const lowStockItems = inventoryCache.filter(item => item.current_stock <= getMinStockLimit(item));
         
         document.getElementById('dashTotalItems').innerText = totalItems;
@@ -586,7 +596,7 @@
         const histTb = document.querySelector("#dashHistoryTable tbody");
         histTb.innerHTML = "";
         try {
-            const q = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(5));
+            const q = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(15));
             const snap = await getDocs(q);
             
             if (snap.empty) {
@@ -606,6 +616,12 @@
             }
         } catch(e) { console.log("Dash History Error", e); }
     }
+
+    window.exportLowStockToExcel = () => {
+        const table = document.getElementById("alertTable");
+        const dateStr = new Date().toISOString().slice(0,10);
+        XLSX.writeFile(XLSX.utils.table_to_book(table), `Low_Stock_Alerts_${dateStr}.xlsx`);
+    };
 
     // --- ADVANCED SEARCH FUNCTIONS ---
     window.performAdvancedSearch = () => {
@@ -641,7 +657,6 @@
         }
 
         data.forEach(d => {
-            // Apply Dynamic Color Logic here too
             const isLow = d.current_stock <= getMinStockLimit(d);
             const color = isLow ? 'var(--danger)' : 'var(--success)';
 
@@ -688,7 +703,6 @@
             d.className = 'search-item';
             const loc = i.location || "N/A";
             const seqHtml = i.sequ_num ? `<span class="seq-tag">SEQ: ${i.sequ_num}</span>` : "";
-            // Apply Dynamic Color Logic
             const isLow = i.current_stock <= getMinStockLimit(i);
             const color = isLow ? 'var(--danger)' : 'var(--success)';
 
@@ -790,6 +804,10 @@
 
         if(!confirm(`Confirm issue of ${issueCart.length} items for date: ${dateInput || 'Today'}?`)) return;
 
+        const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        const txnRef = `TXN-${dateStr}-${randomNum}`;
+
         try {
             for (const item of issueCart) {
                 const ref = doc(db, "factories", activeFactory, "inventory", item.docId);
@@ -799,6 +817,7 @@
                     if(current >= item.issueQty) {
                         await updateDoc(ref, { current_stock: current - item.issueQty });
                         await addDoc(collection(db, "factories", activeFactory, "transactions"), {
+                            txn_ref: txnRef,
                             part_number: item.part_number,
                             description: item.description,
                             model: item.model || "",
@@ -812,7 +831,7 @@
                     }
                 }
             }
-            alert("Items Issued Successfully!");
+            alert(`Items Issued Successfully!\n\nReference Number: ${txnRef}`);
             clearCart();
             document.getElementById('issueMR').value = "";
             document.getElementById('issueEmp').value = "";
@@ -939,7 +958,6 @@
         }
 
         data.forEach(d => {
-            // Apply Dynamic Color Logic
             const isLow = d.current_stock <= getMinStockLimit(d);
             const color = isLow ? 'var(--danger)' : 'var(--success)';
 
@@ -1001,16 +1019,24 @@
         });
         docs.sort((a,b) => b.date.seconds - a.date.seconds);
 
+        currentHistoryData = docs; 
+        renderHistoryTable(docs);
+    };
+
+    window.renderHistoryTable = (docs) => {
+        const loading = document.getElementById('reportLoading');
         loading.style.display = "none";
         document.getElementById("noDataMsg").style.display = docs.length ? "none" : "block";
 
         const tb = document.querySelector("#reportTable tbody");
         const thead = document.querySelector("#reportTable thead");
-        thead.innerHTML = "<tr><th>Date</th><th>MR No</th><th>Issued To</th><th>Item</th><th>Seq</th><th>Qty</th></tr>";
+        thead.innerHTML = "<tr><th>Date</th><th>Ref No</th><th>MR No</th><th>Issued To</th><th>Item</th><th>Seq</th><th>Qty</th></tr>";
         
+        tb.innerHTML = "";
         docs.forEach(v => {
             tb.innerHTML += `<tr>
                 <td>${formatDate(v.date)}</td>
+                <td><span style="color:var(--primary); font-weight:700; font-size:12px;">${v.txn_ref||'-'}</span></td>
                 <td>${v.mr_no}</td>
                 <td>${v.emp}<br><small style="color:#999;">${v.dept}</small></td>
                 <td>${v.part_number}<br><small style="color:#666;">${v.description}</small></td>
@@ -1018,7 +1044,19 @@
                 <td style="font-weight:bold;">${v.qty_issued}</td>
             </tr>`;
         });
-    };
+    }
+
+    window.filterHistoryReport = () => {
+        const val = document.getElementById("historySearchInput").value.toUpperCase();
+        const filtered = currentHistoryData.filter(v => 
+            (v.txn_ref||"").toUpperCase().includes(val) ||
+            (v.mr_no||"").toUpperCase().includes(val) ||
+            (v.emp||"").toUpperCase().includes(val) ||
+            (v.part_number||"").toUpperCase().includes(val) ||
+            (v.description||"").toUpperCase().includes(val)
+        );
+        renderHistoryTable(filtered);
+    }
 
     window.exportToExcel = () => {
         const table = document.getElementById("reportTable");
@@ -1043,4 +1081,3 @@
 </script>
 </body>
 </html>
-
