@@ -401,7 +401,7 @@
 
     <div id="settings-tab" class="content-section">
         <div class="card">
-            <div class="section-title"><span class="material-icons">lock</span> Security</div>
+            <div class="section-title"><span class="material-icons">lock</span> Factory Security</div>
             <div style="margin-bottom: 20px;">
                 <label>Current PIN</label>
                 <div class="password-wrapper">
@@ -418,12 +418,59 @@
             </div>
             <button class="btn btn-primary" style="margin-top: 15px;" onclick="changePassword()">Save New PIN</button>
         </div>
+
+        <div class="card" style="border-top: 5px solid var(--danger);">
+            <div class="section-title"><span class="material-icons" style="color:var(--danger);">admin_panel_settings</span> Database Management (Admin Only)</div>
+            
+            <div id="adminLock">
+                <p style="font-size:13px; color:var(--text-light); margin-bottom:15px;">Enter Administrative Password to edit or remove database records.</p>
+                <div style="display:flex; gap:10px;">
+                    <div class="password-wrapper" style="flex:1;">
+                        <input type="password" id="adminPass" placeholder="Admin Password">
+                        <span class="material-icons password-toggle" onclick="togglePass('adminPass', this)">visibility</span>
+                    </div>
+                    <button class="btn btn-danger" onclick="unlockAdmin()"><span class="material-icons">lock_open</span> Unlock</button>
+                </div>
+            </div>
+
+            <div id="adminPanel" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:20px;">
+                <label style="color:var(--danger);">Search Item to Edit/Delete</label>
+                <div class="search-container" style="margin-bottom:20px;">
+                    <input type="text" id="adminSearchInput" placeholder="Search Part No, Model, Seq, Desc..." onkeyup="adminLiveSearch()" autocomplete="off">
+                    <div id="adminMatchesList" class="search-list"></div>
+                </div>
+
+                <div id="adminEditForm" style="display:none; background:#fff5f5; padding:20px; border-radius:8px; border:1px solid #ffcdd2;">
+                    <div style="font-weight:bold; color:var(--danger); margin-bottom:15px;">Editing Item ID: <span id="adminEditDocId" style="font-weight:normal; font-family:monospace;"></span></div>
+                    <div class="grid-3">
+                        <div><label>Location</label><input type="text" id="editLoc"></div>
+                        <div><label>Seq No</label><input type="text" id="editSeq"></div>
+                        <div><label>Model</label><input type="text" id="editModel"></div>
+                    </div>
+                    <div class="grid-2">
+                        <div><label>Part Number</label><input type="text" id="editPart"></div>
+                        <div><label>Current Stock</label><input type="number" id="editStock"></div>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <label>Description</label><input type="text" id="editDesc">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 20px;">
+                        <button class="btn btn-danger" onclick="deleteAdminItem()"><span class="material-icons">delete_forever</span> Delete Item</button>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn btn-outline" onclick="closeAdminForm()">Cancel</button>
+                            <button class="btn btn-success" onclick="updateAdminItem()"><span class="material-icons">save</span> Update Item</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script type="module">
+    // UPDATED IMPORT: Added deleteDoc
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, query, where, Timestamp, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, getDocs, query, where, Timestamp, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // CONFIG
     const firebaseConfig = {
@@ -456,6 +503,7 @@
     let issueCart = []; 
     let currentReportData = [];
     let currentHistoryData = []; 
+    let currentAdminItem = null; // Track item being edited
 
     function formatDate(timestamp) {
         if (!timestamp) return '-';
@@ -546,6 +594,128 @@
             document.getElementById('newPass').value = "";
         } catch (e) { console.error(e); alert("Error updating PIN."); }
     };
+
+    // --- ADMIN PANEL FUNCTIONS ---
+    window.unlockAdmin = () => {
+        const pass = document.getElementById('adminPass').value;
+        if(pass === 'Smt@1234') {
+            document.getElementById('adminLock').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('adminPass').value = ""; // clear
+        } else {
+            alert("Incorrect Administrative Password.");
+        }
+    };
+
+    window.adminLiveSearch = () => {
+        const text = document.getElementById('adminSearchInput').value.trim().toUpperCase();
+        const list = document.getElementById('adminMatchesList');
+        list.innerHTML = "";
+        list.style.display = "none";
+        
+        if(text.length < 2) return;
+
+        const matches = inventoryCache.filter(i => 
+            (i.part_number||"").includes(text) || 
+            (i.description||"").toUpperCase().includes(text) ||
+            (i.model||"").toUpperCase().includes(text) ||
+            (i.location||"").toUpperCase().includes(text) ||
+            (i.sequ_num||"").toUpperCase().includes(text)
+        );
+
+        list.style.display = "block";
+        if(matches.length === 0) list.innerHTML = "<div class='search-item' style='color:#999; cursor:default;'>No matching items</div>";
+        else matches.forEach(i => {
+            const d = document.createElement('div');
+            d.className = 'search-item';
+            const loc = i.location || "N/A";
+            const seqHtml = i.sequ_num ? `<span class="seq-tag">SEQ: ${i.sequ_num}</span>` : "";
+            d.innerHTML = `
+                <div>
+                    <div class="item-main">${i.part_number} <span class="loc-tag">${loc}</span>${seqHtml}</div>
+                    <div class="item-sub">${i.description} ${i.model ? '| ' + i.model : ''}</div>
+                </div>
+                <div style="font-weight:bold; color:var(--primary);">${i.current_stock} Qty</div>
+            `;
+            d.onclick = () => selectAdminItem(i);
+            list.appendChild(d);
+        });
+    };
+
+    window.selectAdminItem = (item) => {
+        currentAdminItem = item;
+        document.getElementById('adminMatchesList').style.display = "none";
+        document.getElementById('adminSearchInput').value = "";
+        
+        document.getElementById('adminEditForm').style.display = "block";
+        document.getElementById('adminEditDocId').innerText = item.docId;
+        
+        // Populate inputs
+        document.getElementById('editLoc').value = item.location || "";
+        document.getElementById('editSeq').value = item.sequ_num || "";
+        document.getElementById('editModel').value = item.model || "";
+        document.getElementById('editPart').value = item.part_number || "";
+        document.getElementById('editDesc').value = item.description || "";
+        document.getElementById('editStock').value = item.current_stock || 0;
+    };
+
+    window.closeAdminForm = () => {
+        currentAdminItem = null;
+        document.getElementById('adminEditForm').style.display = "none";
+    };
+
+    window.updateAdminItem = async () => {
+        if(!currentAdminItem) return;
+        
+        const loc = document.getElementById('editLoc').value.trim();
+        const seq = document.getElementById('editSeq').value.trim();
+        const model = document.getElementById('editModel').value.trim();
+        const part = document.getElementById('editPart').value.trim().toUpperCase();
+        const desc = document.getElementById('editDesc').value.trim();
+        const stock = parseInt(document.getElementById('editStock').value);
+
+        if(!confirm(`Are you sure you want to OVERWRITE the details for ${currentAdminItem.part_number}?`)) return;
+
+        try {
+            const ref = doc(db, "factories", activeFactory, "inventory", currentAdminItem.docId);
+            await updateDoc(ref, {
+                location: loc,
+                sequ_num: seq,
+                model: model,
+                part_number: part,
+                description: desc,
+                current_stock: stock
+            });
+            alert("Item successfully updated in database!");
+            closeAdminForm();
+            refreshInventoryCache(); // Refresh app data
+        } catch(e) {
+            console.error("Error updating document: ", e);
+            alert("Error updating item.");
+        }
+    };
+
+    window.deleteAdminItem = async () => {
+        if(!currentAdminItem) return;
+
+        const confirm1 = confirm(`WARNING: You are about to DELETE ${currentAdminItem.part_number} entirely from the system. This cannot be undone.`);
+        if(!confirm1) return;
+        
+        const confirm2 = confirm(`Are you absolutely sure you want to delete ${currentAdminItem.part_number} (${currentAdminItem.description})?`);
+        if(!confirm2) return;
+
+        try {
+            const ref = doc(db, "factories", activeFactory, "inventory", currentAdminItem.docId);
+            await deleteDoc(ref);
+            alert("Item successfully DELETED from database!");
+            closeAdminForm();
+            refreshInventoryCache(); // Refresh app data
+        } catch(e) {
+            console.error("Error deleting document: ", e);
+            alert("Error deleting item.");
+        }
+    };
+
 
     async function refreshInventoryCache() {
         const q = collection(db, "factories", activeFactory, "inventory");
