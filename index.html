@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMT Apparel - Factory Inventory </title>
+    <title>Factory Inventory Pro</title>
     
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -112,8 +112,8 @@
         /* TABLES & CART */
         .table-wrapper { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
         
-        /* DASHBOARD SPECIFIC SCROLLABLE TABLES */
-        .dash-table-container { max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+        /* SCROLLABLE TABLES */
+        .dash-table-container { overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
         .dash-table-container th { position: sticky; top: 0; z-index: 10; background: #f8f9fa; border-bottom: 2px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .dash-table-container table { width: 100%; border-collapse: collapse; font-size: 14px; }
         
@@ -138,9 +138,6 @@
         .file-upload-btn { display: inline-block; padding: 10px 20px; border: 1px solid var(--border); border-radius: 6px; background: #fafafa; color: var(--text-light); font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .file-upload-btn:hover { background: #f0f0f0; border-color: #ccc; }
         
-        /* STOCK FILTER BOX */
-        .stock-filter-box { background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: none; border: 1px solid #bbdefb; }
-
         /* FIXED HEIGHT CONTROLS */
         .control-height { height: 48px !important; box-sizing: border-box !important; margin: 0 !important; }
     </style>
@@ -178,7 +175,7 @@
 <div id="app-container">
     <div class="header-bar">
         <div style="display:flex; align-items:center; gap:10px;">
-            <div style="font-weight:700; font-size:18px; color:var(--text-main);">SMT - IMS</div>
+            <div style="font-weight:700; font-size:18px; color:var(--text-main);">IMS Pro</div>
             <span class="factory-badge" id="displayFactory"></span>
         </div>
         <div class="logout-btn" onclick="location.reload()">
@@ -191,7 +188,10 @@
         <div class="tab" onclick="switchTab('issue-tab', event)"><span class="material-icons">shopping_cart</span> Issue Items</div>
         <div class="tab" onclick="switchTab('receive-tab', event)"><span class="material-icons">add_box</span> Add Stock</div>
         <div class="tab" onclick="switchTab('adv-search-tab', event)"><span class="material-icons">travel_explore</span> Advanced Search</div>
-        <div class="tab" onclick="switchTab('report-tab', event)"><span class="material-icons">analytics</span> Reports</div>
+        
+        <div class="tab" onclick="switchTab('history-tab', event)"><span class="material-icons">history</span> Issue History</div>
+        <div class="tab" onclick="switchTab('stock-tab', event)"><span class="material-icons">inventory</span> Current Stock</div>
+        
         <div class="tab" onclick="switchTab('settings-tab', event)"><span class="material-icons">settings</span> Settings</div>
     </div>
 
@@ -214,9 +214,9 @@
         <div class="card" style="border-top: 5px solid var(--accent);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <div class="section-title" style="margin-bottom: 0; border: none; padding-bottom: 0;"><span class="material-icons" style="color:var(--accent);">notification_important</span> Re-Order Alerts (Low Stock)</div>
-                <button class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;" onclick="exportLowStockToExcel()"><span class="material-icons" style="font-size: 18px;">download</span> Export List</button>
+                <button class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;" onclick="exportTableToExcel('alertTable', 'Low_Stock_Alerts')"><span class="material-icons" style="font-size: 18px;">download</span> Export List</button>
             </div>
-            <div class="dash-table-container">
+            <div class="dash-table-container" style="max-height: 300px;">
                 <table id="alertTable">
                     <thead><tr><th>Location</th><th>Seq</th><th>Model</th><th>Part No</th><th>Description</th><th style="text-align:right;">Current Stock</th></tr></thead>
                     <tbody></tbody>
@@ -226,7 +226,7 @@
 
         <div class="card">
             <div class="section-title"><span class="material-icons">history</span> Recent Activity</div>
-            <div class="dash-table-container">
+            <div class="dash-table-container" style="max-height: 300px;">
                 <table id="dashHistoryTable">
                     <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Qty</th></tr></thead>
                     <tbody></tbody>
@@ -236,13 +236,17 @@
     </div>
 
     <div id="issue-tab" class="content-section">
-        <div class="card">
+        <div class="card" style="border-top: 5px solid var(--primary);">
             <div class="section-title"><span class="material-icons">badge</span> Requisition Details</div>
+            <p style="font-size:13px; color:var(--text-light); margin-top:-10px; margin-bottom:15px;">
+                * Employee ID and Department are saved <b>per item</b> when you click "Add". You can change them between items for the same MR.
+            </p>
+
             <div class="grid-4">
                 <div><label>MR Number</label><input type="text" id="issueMR" placeholder="e.g. MR-2026-001"></div>
                 <div><label>Date of Issue</label><input type="date" id="issueDate"></div>
-                <div><label>Employee ID</label><input type="text" id="issueEmp" placeholder="e.g. 10455"></div>
-                <div><label>Department</label><input type="text" id="issueDept" placeholder="e.g. Sewing Line 4"></div>
+                <div><label style="color:var(--primary);">Assign To (Emp ID)</label><input type="text" id="issueEmp" placeholder="e.g. 10455"></div>
+                <div><label style="color:var(--primary);">Assign To (Dept)</label><input type="text" id="issueDept" placeholder="e.g. Sewing Line 4"></div>
             </div>
         </div>
 
@@ -290,7 +294,7 @@
             </div>
             <div class="table-wrapper">
                 <table id="cartTable">
-                    <thead><tr><th>Location</th><th>Seq</th><th>Model</th><th>Part No</th><th>Description</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Action</th></tr></thead>
+                    <thead><tr><th>Location</th><th>Part No</th><th>Description</th><th>Emp ID</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Action</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -356,45 +360,76 @@
         </div>
     </div>
 
-
-    <div id="report-tab" class="content-section">
+    <div id="history-tab" class="content-section">
         <div class="card">
-            <div class="section-title"><span class="material-icons">date_range</span> Reports</div>
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button class="btn btn-primary" style="flex:1;" onclick="loadTransactionReport()"><span class="material-icons">history</span> History</button>
-                <button class="btn btn-success" style="flex:1;" onclick="loadCurrentStockReport()"><span class="material-icons">inventory</span> Current Stock</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div class="section-title" style="margin-bottom: 0; border: none; padding-bottom: 0;"><span class="material-icons">history</span> Issue History Report</div>
+                <button class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;" onclick="exportTableToExcel('historyTable', 'Issue_History')"><span class="material-icons" style="font-size: 18px;">download</span> Download Excel</button>
             </div>
             
-            <div id="dateFilterBox" style="display:block; background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:20px;">
-                <label>Filter History (Date Range & Search):</label>
-                <div class="grid-3" style="margin-bottom:0;">
-                    <input type="date" id="startDate" onchange="loadTransactionReport()">
-                    <input type="date" id="endDate" onchange="loadTransactionReport()">
-                    <input type="text" id="historySearchInput" placeholder="Search Ref No, MR No, Emp..." onkeyup="filterHistoryReport()">
+            <div style="background:#f8f9fa; padding:20px; border-radius:8px; margin-bottom:20px; display:flex; gap:20px; flex-wrap:wrap; border: 1px solid var(--border);">
+                <div style="flex:1; min-width:300px; border-right:1px solid #ddd; padding-right:20px;">
+                    <label style="color:var(--text-main); font-size:13px;"><span class="material-icons" style="font-size:16px; vertical-align:middle; color:var(--primary);">date_range</span> 1. View by Date Range</label>
+                    <div style="display:flex; gap:10px; margin-top:8px;">
+                        <input type="date" id="startDate" onchange="loadTransactionReport()">
+                        <input type="date" id="endDate" onchange="loadTransactionReport()">
+                    </div>
                 </div>
-            </div>
-
-            <div id="stockFilterBox" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-bottom:20px;">
-                <label style="color:var(--primary);">Filter Stock List:</label>
-                <div class="grid-2" style="margin-bottom:0; grid-template-columns: 3fr 1fr;">
-                    <input type="text" id="stockSearchInput" placeholder="Filter by Brand, Model, Part No, Seq..." onkeyup="filterStockReport()">
-                    <div style="align-self:center; text-align:right; font-weight:600; color:var(--primary);">
-                        <span id="stockCount">0</span> Items
+                <div style="flex:1; min-width:300px;">
+                    <label style="color:var(--text-main); font-size:13px;"><span class="material-icons" style="font-size:16px; vertical-align:middle; color:var(--danger);">travel_explore</span> 2. Search </label>
+                    <div style="display:flex; gap:10px; margin-top:8px;">
+                        <input type="text" id="globalHistorySearch" placeholder="Find by MR No, Ref No, Emp..." onkeypress="if(event.key==='Enter') searchHistoryAllTime()">
+                        <button class="btn btn-primary" onclick="searchHistoryAllTime()"><span class="material-icons">search</span> Find</button>
                     </div>
                 </div>
             </div>
-        </div>
 
+            <div id="historyLoading" style="display:none; text-align:center; padding:20px; color:var(--primary); font-weight:600;">Searching Database...</div>
+            
+            <div class="dash-table-container" style="max-height: 500px;">
+                <table id="historyTable">
+                    <thead>
+                        <tr><th>Date</th><th>Ref No</th><th>MR No</th><th>Issued To</th><th>Item</th><th>Seq</th><th>Qty</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <div id="historyNoDataMsg" class="empty-state" style="display:none;">No records found.</div>
+        </div>
+    </div>
+
+    <div id="stock-tab" class="content-section">
         <div class="card">
-            <div id="reportLoading" style="display:none; text-align:center; padding:20px; color:var(--primary); font-weight:600;">Loading Data...</div>
-            <div class="table-wrapper">
-                <div style="overflow-x:auto;">
-                    <table id="reportTable"><thead></thead><tbody></tbody></table>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div class="section-title" style="margin-bottom: 0; border: none; padding-bottom: 0;"><span class="material-icons">inventory</span> Current Stock Report</div>
+                <button class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;" onclick="exportTableToExcel('stockTable', 'Current_Stock')"><span class="material-icons" style="font-size: 18px;">download</span> Download Excel</button>
+            </div>
+
+            <div style="background:#e3f2fd; padding:15px; border-radius:8px; margin-bottom:20px; border: 1px solid #bbdefb;">
+                <label style="color:var(--primary);">Quick Filter Stock List:</label>
+                <div class="grid-2" style="margin-bottom:0; grid-template-columns: 3fr 1fr;">
+                    <input type="text" id="stockSearchInput" placeholder="Filter by Brand, Model, Part No, Seq..." onkeyup="filterStockReport()">
+                    <div style="align-self:center; text-align:right; font-weight:600; color:var(--primary);">
+                        <span id="stockCount">0</span> Items Listed
+                    </div>
                 </div>
             </div>
-            <div id="noDataMsg" class="empty-state" style="display:none;">No records found.</div>
-            <div style="text-align: right; margin-top: 15px;">
-                <button class="btn btn-primary" onclick="exportToExcel()"><span class="material-icons">download</span> Download Excel</button>
+
+            <div class="dash-table-container" style="max-height: 500px;">
+                <table id="stockTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortStock('location')">Location ⬍</th>
+                            <th onclick="sortStock('sequ_num')">Seq No ⬍</th>
+                            <th onclick="sortStock('model')">Model ⬍</th>
+                            <th onclick="sortStock('part_number')">Part No ⬍</th>
+                            <th onclick="sortStock('description')">Description ⬍</th>
+                            <th onclick="sortStock('current_stock')">Stock ⬍</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -468,7 +503,6 @@
 </div>
 
 <script type="module">
-    // UPDATED IMPORT: Added deleteDoc
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, getDocs, query, where, Timestamp, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -503,7 +537,7 @@
     let issueCart = []; 
     let currentReportData = [];
     let currentHistoryData = []; 
-    let currentAdminItem = null; // Track item being edited
+    let currentAdminItem = null; 
 
     function formatDate(timestamp) {
         if (!timestamp) return '-';
@@ -534,11 +568,15 @@
         return baseId;
     }
 
+    // UPDATED INITIAL LOAD DATES (DEFAULT TO LAST 30 DAYS)
     window.addEventListener('DOMContentLoaded', () => {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('startDate').value = today;
-        document.getElementById('endDate').value = today;
-        document.getElementById('issueDate').value = today;
+        const today = new Date();
+        const past = new Date();
+        past.setDate(today.getDate() - 30); // 30 days ago
+
+        document.getElementById('startDate').value = past.toISOString().split('T')[0];
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+        document.getElementById('issueDate').value = today.toISOString().split('T')[0];
     });
 
     window.togglePass = (id, icon) => {
@@ -548,9 +586,7 @@
     };
 
     document.getElementById("loginPass").addEventListener("keypress", function(event) {
-        if (event.key === "Enter") {
-            login();
-        }
+        if (event.key === "Enter") { login(); }
     });
 
     window.login = async () => {
@@ -601,7 +637,7 @@
         if(pass === 'Smt@1234') {
             document.getElementById('adminLock').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
-            document.getElementById('adminPass').value = ""; // clear
+            document.getElementById('adminPass').value = ""; 
         } else {
             alert("Incorrect Administrative Password.");
         }
@@ -650,7 +686,6 @@
         document.getElementById('adminEditForm').style.display = "block";
         document.getElementById('adminEditDocId').innerText = item.docId;
         
-        // Populate inputs
         document.getElementById('editLoc').value = item.location || "";
         document.getElementById('editSeq').value = item.sequ_num || "";
         document.getElementById('editModel').value = item.model || "";
@@ -688,7 +723,7 @@
             });
             alert("Item successfully updated in database!");
             closeAdminForm();
-            refreshInventoryCache(); // Refresh app data
+            refreshInventoryCache(); 
         } catch(e) {
             console.error("Error updating document: ", e);
             alert("Error updating item.");
@@ -709,7 +744,7 @@
             await deleteDoc(ref);
             alert("Item successfully DELETED from database!");
             closeAdminForm();
-            refreshInventoryCache(); // Refresh app data
+            refreshInventoryCache(); 
         } catch(e) {
             console.error("Error deleting document: ", e);
             alert("Error deleting item.");
@@ -722,7 +757,12 @@
         const snap = await getDocs(q);
         inventoryCache = [];
         snap.forEach(d => inventoryCache.push({ ...d.data(), docId: d.id }));
+        
         loadDashboard();
+        
+        if(document.getElementById('stock-tab').classList.contains('active')) {
+            loadCurrentStockReport();
+        }
     }
 
     // --- HELPER: GET MIN STOCK LEVEL ---
@@ -786,12 +826,6 @@
             }
         } catch(e) { console.log("Dash History Error", e); }
     }
-
-    window.exportLowStockToExcel = () => {
-        const table = document.getElementById("alertTable");
-        const dateStr = new Date().toISOString().slice(0,10);
-        XLSX.writeFile(XLSX.utils.table_to_book(table), `Low_Stock_Alerts_${dateStr}.xlsx`);
-    };
 
     // --- ADVANCED SEARCH FUNCTIONS ---
     window.performAdvancedSearch = () => {
@@ -919,10 +953,23 @@
     window.addToCart = () => {
         if(!activeItem) return;
         const qty = parseInt(document.getElementById('issueQty').value);
-        if(qty <= 0 || qty > activeItem.current_stock) return alert("Invalid Quantity or Insufficient Stock");
-        if(issueCart.some(x => x.docId === activeItem.docId)) return alert("Item already in cart");
+        const emp = document.getElementById('issueEmp').value.trim();
+        const dept = document.getElementById('issueDept').value.trim();
 
-        issueCart.push({ ...activeItem, issueQty: qty });
+        if(!emp || !dept) {
+            return alert("Please enter the Assign To (Emp ID) and Department before adding to the cart.");
+        }
+
+        if(qty <= 0 || qty > activeItem.current_stock) {
+            return alert("Invalid Quantity or Insufficient Stock");
+        }
+        
+        const existingIndex = issueCart.findIndex(x => x.docId === activeItem.docId && x.emp === emp);
+        if(existingIndex > -1) {
+            return alert(`This item is already in the cart for Employee ${emp}.`);
+        }
+
+        issueCart.push({ ...activeItem, issueQty: qty, emp: emp, dept: dept });
         renderCart();
         resetSearch();
     };
@@ -936,10 +983,9 @@
         issueCart.forEach((item, index) => {
             tbody.innerHTML += `<tr>
                 <td style="color:var(--primary); font-weight:600;">${item.location||'-'}</td>
-                <td><span class="seq-tag">${item.sequ_num||'-'}</span></td>
-                <td>${item.model||'-'}</td>
                 <td>${item.part_number}</td>
                 <td>${item.description}</td>
+                <td style="color:var(--accent); font-weight:bold;">${item.emp}</td>
                 <td style="text-align:center; font-weight:bold;">${item.issueQty}</td>
                 <td style="text-align:right;"><span class="remove-link" onclick="removeFromCart(${index})">Remove</span></td>
             </tr>`;
@@ -958,11 +1004,9 @@
 
     window.submitIssue = async () => {
         const mr = document.getElementById('issueMR').value.trim();
-        const emp = document.getElementById('issueEmp').value.trim();
-        const dept = document.getElementById('issueDept').value.trim();
         const dateInput = document.getElementById('issueDate').value;
         
-        if(!mr || !emp || !dept) return alert("Please fill MR No, Employee ID, and Department.");
+        if(!mr) return alert("Please fill the MR Number.");
         if(issueCart.length === 0) return alert("Cart is empty");
         
         let txDate = Timestamp.now();
@@ -972,7 +1016,7 @@
              txDate = Timestamp.fromDate(d);
         }
 
-        if(!confirm(`Confirm issue of ${issueCart.length} items for date: ${dateInput || 'Today'}?`)) return;
+        if(!confirm(`Confirm issue of ${issueCart.length} items for MR: ${mr}?`)) return;
 
         const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
         const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -986,6 +1030,7 @@
                     let current = snap.data().current_stock;
                     if(current >= item.issueQty) {
                         await updateDoc(ref, { current_stock: current - item.issueQty });
+                        
                         await addDoc(collection(db, "factories", activeFactory, "transactions"), {
                             txn_ref: txnRef,
                             part_number: item.part_number,
@@ -993,7 +1038,9 @@
                             model: item.model || "",
                             location: item.location || "",
                             sequ_num: item.sequ_num || "",
-                            mr_no: mr, emp: emp, dept: dept,
+                            mr_no: mr, 
+                            emp: item.emp, 
+                            dept: item.dept,
                             qty_issued: item.issueQty,
                             date: txDate,
                             factory_id: activeFactory 
@@ -1004,8 +1051,6 @@
             alert(`Items Issued Successfully!\n\nReference Number: ${txnRef}`);
             clearCart();
             document.getElementById('issueMR').value = "";
-            document.getElementById('issueEmp').value = "";
-            document.getElementById('issueDept').value = "";
             refreshInventoryCache();
         } catch(e) { console.error(e); alert("Error processing transaction."); }
     };
@@ -1097,28 +1142,15 @@
         reader.readAsArrayBuffer(file);
     };
 
+    // --- REPORT FUNCTIONS ---
+
     window.loadCurrentStockReport = () => {
-        document.getElementById("dateFilterBox").style.display = "none";
-        document.getElementById("stockFilterBox").style.display = "block";
-        document.getElementById("noDataMsg").style.display = "none";
-        
-        const thead = document.querySelector("#reportTable thead");
-        thead.innerHTML = `
-            <tr>
-                <th onclick="sortStock('location')">Location ⬍</th>
-                <th onclick="sortStock('sequ_num')">Seq No ⬍</th>
-                <th onclick="sortStock('model')">Model ⬍</th>
-                <th onclick="sortStock('part_number')">Part No ⬍</th>
-                <th onclick="sortStock('description')">Description ⬍</th>
-                <th onclick="sortStock('current_stock')">Stock ⬍</th>
-            </tr>`;
-        
         currentReportData = [...inventoryCache]; 
         renderStockTable(currentReportData);
     };
 
     window.renderStockTable = (data) => {
-        const tb = document.querySelector("#reportTable tbody");
+        const tb = document.querySelector("#stockTable tbody");
         tb.innerHTML = "";
         document.getElementById("stockCount").innerText = data.length;
 
@@ -1167,42 +1199,88 @@
         renderStockTable(currentReportData);
     }
 
+    // NORMAL DATE RANGE LOAD
     window.loadTransactionReport = async () => {
-        document.getElementById("dateFilterBox").style.display = "block";
-        document.getElementById("stockFilterBox").style.display = "none";
-        
         const sVal = document.getElementById('startDate').value;
         const eVal = document.getElementById('endDate').value;
-        const loading = document.getElementById('reportLoading');
+        
+        if(!sVal || !eVal) return; // Don't run if dates are cleared
+
+        document.getElementById("globalHistorySearch").value = ""; // Clear deep search box
+
+        const loading = document.getElementById('historyLoading');
         loading.style.display = "block";
-        document.querySelector("#reportTable tbody").innerHTML = "";
+        document.querySelector("#historyTable tbody").innerHTML = "";
 
-        const q = collection(db, "factories", activeFactory, "transactions");
-        const snap = await getDocs(q);
-        const docs = [];
-        const start = new Date(sVal); const end = new Date(eVal); end.setHours(23,59,59);
+        try {
+            const q = collection(db, "factories", activeFactory, "transactions");
+            const snap = await getDocs(q);
+            const docs = [];
+            const start = new Date(sVal); 
+            const end = new Date(eVal); 
+            end.setHours(23,59,59);
 
-        snap.forEach(d => {
-            const data = d.data();
-            const date = data.date.toDate();
-            if(date >= start && date <= end) docs.push(data);
-        });
-        docs.sort((a,b) => b.date.seconds - a.date.seconds);
+            snap.forEach(d => {
+                const data = d.data();
+                const date = data.date.toDate();
+                if(date >= start && date <= end) docs.push(data);
+            });
+            docs.sort((a,b) => b.date.seconds - a.date.seconds);
 
-        currentHistoryData = docs; 
-        renderHistoryTable(docs);
+            currentHistoryData = docs; 
+            renderHistoryTable(docs);
+        } catch (e) { console.error(e); }
+    };
+
+    // NEW: DEEP SEARCH (ALL TIME)
+    window.searchHistoryAllTime = async () => {
+        const val = document.getElementById("globalHistorySearch").value.trim().toUpperCase();
+        if(!val) {
+            alert("Please enter a Reference, MR, or Employee Number.");
+            return;
+        }
+
+        const loading = document.getElementById('historyLoading');
+        loading.style.display = "block";
+        document.querySelector("#historyTable tbody").innerHTML = "";
+        document.getElementById("historyNoDataMsg").style.display = "none";
+
+        try {
+            // Fetch last 2000 records to filter through (NoSQL workaround for text search)
+            const q = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(2000));
+            const snap = await getDocs(q);
+            const docs = [];
+
+            snap.forEach(d => {
+                const v = d.data();
+                if(
+                    (v.txn_ref||"").toUpperCase().includes(val) ||
+                    (v.mr_no||"").toUpperCase().includes(val) ||
+                    (v.emp||"").toUpperCase().includes(val) ||
+                    (v.part_number||"").toUpperCase().includes(val)
+                ) {
+                    docs.push(v);
+                }
+            });
+
+            currentHistoryData = docs; 
+            renderHistoryTable(docs);
+
+            // Clear Date fields to show we are ignoring dates
+            document.getElementById('startDate').value = "";
+            document.getElementById('endDate').value = "";
+            
+        } catch(e) { console.error(e); }
     };
 
     window.renderHistoryTable = (docs) => {
-        const loading = document.getElementById('reportLoading');
+        const loading = document.getElementById('historyLoading');
         loading.style.display = "none";
-        document.getElementById("noDataMsg").style.display = docs.length ? "none" : "block";
+        document.getElementById("historyNoDataMsg").style.display = docs.length ? "none" : "block";
 
-        const tb = document.querySelector("#reportTable tbody");
-        const thead = document.querySelector("#reportTable thead");
-        thead.innerHTML = "<tr><th>Date</th><th>Ref No</th><th>MR No</th><th>Issued To</th><th>Item</th><th>Seq</th><th>Qty</th></tr>";
-        
+        const tb = document.querySelector("#historyTable tbody");
         tb.innerHTML = "";
+        
         docs.forEach(v => {
             tb.innerHTML += `<tr>
                 <td>${formatDate(v.date)}</td>
@@ -1216,21 +1294,10 @@
         });
     }
 
-    window.filterHistoryReport = () => {
-        const val = document.getElementById("historySearchInput").value.toUpperCase();
-        const filtered = currentHistoryData.filter(v => 
-            (v.txn_ref||"").toUpperCase().includes(val) ||
-            (v.mr_no||"").toUpperCase().includes(val) ||
-            (v.emp||"").toUpperCase().includes(val) ||
-            (v.part_number||"").toUpperCase().includes(val) ||
-            (v.description||"").toUpperCase().includes(val)
-        );
-        renderHistoryTable(filtered);
-    }
-
-    window.exportToExcel = () => {
-        const table = document.getElementById("reportTable");
-        XLSX.writeFile(XLSX.utils.table_to_book(table), `Report.xlsx`);
+    window.exportTableToExcel = (tableId, fileName) => {
+        const table = document.getElementById(tableId);
+        const dateStr = new Date().toISOString().slice(0,10);
+        XLSX.writeFile(XLSX.utils.table_to_book(table), `${fileName}_${dateStr}.xlsx`);
     };
 
     window.switchTab = (id, e) => {
@@ -1238,6 +1305,9 @@
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         e.currentTarget.classList.add('active');
+
+        if(id === 'stock-tab') loadCurrentStockReport();
+        if(id === 'history-tab') loadTransactionReport();
     };
 
     window.updateFileName = (input) => {
@@ -1251,4 +1321,3 @@
 </script>
 </body>
 </html>
-
