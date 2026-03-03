@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Factory Inventory </title>
+    <title>Factory Inventory Pro</title>
     
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -225,7 +225,7 @@
         </div>
 
         <div class="card">
-            <div class="section-title"><span class="material-icons">history</span> Recent Activity</div>
+            <div class="section-title"><span class="material-icons">history</span> Recent Activity (This Month)</div>
             <div class="dash-table-container" style="max-height: 300px;">
                 <table id="dashHistoryTable">
                     <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Qty</th></tr></thead>
@@ -376,7 +376,7 @@
                     </div>
                 </div>
                 <div style="flex:1; min-width:300px;">
-                    <label style="color:var(--text-main); font-size:13px;"><span class="material-icons" style="font-size:16px; vertical-align:middle; color:var(--danger);">travel_explore</span> 2. Search </label>
+                    <label style="color:var(--text-main); font-size:13px;"><span class="material-icons" style="font-size:16px; vertical-align:middle; color:var(--danger);">travel_explore</span> 2. Deep Search (Ignores Dates)</label>
                     <div style="display:flex; gap:10px; margin-top:8px;">
                         <input type="text" id="globalHistorySearch" placeholder="Find by MR No, Ref No, Emp..." onkeypress="if(event.key==='Enter') searchHistoryAllTime()">
                         <button class="btn btn-primary" onclick="searchHistoryAllTime()"><span class="material-icons">search</span> Find</button>
@@ -568,7 +568,6 @@
         return baseId;
     }
 
-    // UPDATED INITIAL LOAD DATES (DEFAULT TO LAST 30 DAYS)
     window.addEventListener('DOMContentLoaded', () => {
         const today = new Date();
         const past = new Date();
@@ -772,7 +771,7 @@
         return 5;
     }
 
-    // --- DASHBOARD FUNCTIONS ---
+    // --- DASHBOARD FUNCTIONS (UPDATED TO ONLY SHOW CURRENT MONTH) ---
     async function loadDashboard() {
         const totalItems = inventoryCache.length;
         const itemsInStock = inventoryCache.filter(item => item.current_stock > 0).length;
@@ -806,23 +805,41 @@
         const histTb = document.querySelector("#dashHistoryTable tbody");
         histTb.innerHTML = "";
         try {
-            const q = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(15));
+            // Fetch top 50 recent records
+            const q = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(50));
             const snap = await getDocs(q);
             
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            let addedCount = 0;
+
             if (snap.empty) {
-                histTb.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#999;">No recent activity</td></tr>`;
+                histTb.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#999;">No recent activity this month</td></tr>`;
             } else {
                 snap.forEach(d => {
                     const t = d.data();
-                    histTb.innerHTML += `
-                        <tr>
-                            <td>${formatDate(t.date)}</td>
-                            <td><span style="color:var(--accent); font-weight:bold;">ISSUE</span></td>
-                            <td>${t.part_number}</td>
-                            <td style="font-weight:bold;">-${t.qty_issued}</td>
-                        </tr>
-                    `;
+                    const tDate = t.date.toDate();
+                    
+                    // Display ONLY if the transaction happened this month and year
+                    if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear && addedCount < 15) {
+                        histTb.innerHTML += `
+                            <tr>
+                                <td>${formatDate(t.date)}</td>
+                                <td><span style="color:var(--accent); font-weight:bold;">ISSUE</span></td>
+                                <td>${t.part_number}</td>
+                                <td style="font-weight:bold;">-${t.qty_issued}</td>
+                            </tr>
+                        `;
+                        addedCount++;
+                    }
                 });
+                
+                // If the loop finished but nothing was from THIS month
+                if (addedCount === 0) {
+                     histTb.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#999;">No recent activity this month</td></tr>`;
+                }
             }
         } catch(e) { console.log("Dash History Error", e); }
     }
@@ -1204,9 +1221,9 @@
         const sVal = document.getElementById('startDate').value;
         const eVal = document.getElementById('endDate').value;
         
-        if(!sVal || !eVal) return; // Don't run if dates are cleared
+        if(!sVal || !eVal) return; 
 
-        document.getElementById("globalHistorySearch").value = ""; // Clear deep search box
+        document.getElementById("globalHistorySearch").value = ""; 
 
         const loading = document.getElementById('historyLoading');
         loading.style.display = "block";
@@ -1232,7 +1249,7 @@
         } catch (e) { console.error(e); }
     };
 
-    // NEW: DEEP SEARCH (ALL TIME)
+    // DEEP SEARCH (ALL TIME)
     window.searchHistoryAllTime = async () => {
         const val = document.getElementById("globalHistorySearch").value.trim().toUpperCase();
         if(!val) {
@@ -1246,7 +1263,6 @@
         document.getElementById("historyNoDataMsg").style.display = "none";
 
         try {
-            // Fetch last 2000 records to filter through (NoSQL workaround for text search)
             const q = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(2000));
             const snap = await getDocs(q);
             const docs = [];
@@ -1266,7 +1282,6 @@
             currentHistoryData = docs; 
             renderHistoryTable(docs);
 
-            // Clear Date fields to show we are ignoring dates
             document.getElementById('startDate').value = "";
             document.getElementById('endDate').value = "";
             
@@ -1292,6 +1307,18 @@
                 <td style="font-weight:bold;">${v.qty_issued}</td>
             </tr>`;
         });
+    }
+
+    window.filterHistoryReport = () => {
+        const val = document.getElementById("historySearchInput").value.toUpperCase();
+        const filtered = currentHistoryData.filter(v => 
+            (v.txn_ref||"").toUpperCase().includes(val) ||
+            (v.mr_no||"").toUpperCase().includes(val) ||
+            (v.emp||"").toUpperCase().includes(val) ||
+            (v.part_number||"").toUpperCase().includes(val) ||
+            (v.description||"").toUpperCase().includes(val)
+        );
+        renderHistoryTable(filtered);
     }
 
     window.exportTableToExcel = (tableId, fileName) => {
@@ -1321,4 +1348,3 @@
 </script>
 </body>
 </html>
-
