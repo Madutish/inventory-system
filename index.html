@@ -139,7 +139,7 @@
         .file-upload-btn:hover { background: #f0f0f0; border-color: #ccc; }
         
         /* FIXED HEIGHT CONTROLS */
-        .control-height { height: 48px !important; box-sizing: border-box !important; margin: 0 !important; }
+        .control-height { height: 44px !important; box-sizing: border-box !important; margin: 0 !important; }
     </style>
 </head>
 <body>
@@ -252,9 +252,21 @@
 
         <div class="card">
             <div class="section-title"><span class="material-icons">search</span> Find & Add Items</div>
+            
             <div class="search-container">
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="searchInput" placeholder="Scan or type Part No, Model, or Location..." onkeyup="liveSearch()" autocomplete="off">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="flex: 1;">
+                        <input type="text" class="control-height" id="searchModel" placeholder="Model (e.g., JUKI)" onkeyup="liveSearch()" autocomplete="off">
+                    </div>
+                    <div style="flex: 1.5;">
+                        <input type="text" class="control-height" id="searchPart" placeholder="Part No or Name" onkeyup="liveSearch()" autocomplete="off">
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="text" class="control-height" id="searchSeq" placeholder="Seq No" onkeyup="liveSearch()" autocomplete="off">
+                    </div>
+                    <div>
+                        <button class="btn btn-primary control-height" onclick="liveSearch()"><span class="material-icons">search</span> Search</button>
+                    </div>
                 </div>
                 <div id="matchesList" class="search-list"></div>
             </div>
@@ -771,7 +783,7 @@
         return 5;
     }
 
-    // --- DASHBOARD FUNCTIONS (UPDATED TO ONLY SHOW CURRENT MONTH) ---
+    // --- DASHBOARD FUNCTIONS ---
     async function loadDashboard() {
         const totalItems = inventoryCache.length;
         const itemsInStock = inventoryCache.filter(item => item.current_stock > 0).length;
@@ -805,7 +817,6 @@
         const histTb = document.querySelector("#dashHistoryTable tbody");
         histTb.innerHTML = "";
         try {
-            // Fetch top 50 recent records
             const q = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(50));
             const snap = await getDocs(q);
             
@@ -822,7 +833,6 @@
                     const t = d.data();
                     const tDate = t.date.toDate();
                     
-                    // Display ONLY if the transaction happened this month and year
                     if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear && addedCount < 15) {
                         histTb.innerHTML += `
                             <tr>
@@ -836,13 +846,13 @@
                     }
                 });
                 
-                // If the loop finished but nothing was from THIS month
                 if (addedCount === 0) {
                      histTb.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#999;">No recent activity this month</td></tr>`;
                 }
             }
         } catch(e) { console.log("Dash History Error", e); }
     }
+
 
     // --- ADVANCED SEARCH FUNCTIONS ---
     window.performAdvancedSearch = () => {
@@ -900,43 +910,65 @@
         document.querySelector("#advSearchTable tbody").innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px; color:#999;'>Enter criteria and click Search</td></tr>";
     };
 
-
+    // --- UPDATED LIVE SEARCH (TRIPLE FIELDS) ---
     window.liveSearch = () => {
-        const text = document.getElementById('searchInput').value.trim().toUpperCase();
-        const list = document.getElementById('matchesList');
-        list.innerHTML = "";
-        list.style.display = "none";
+        const modelText = document.getElementById('searchModel').value.trim().toUpperCase();
+        const partText = document.getElementById('searchPart').value.trim().toUpperCase();
+        const seqText = document.getElementById('searchSeq').value.trim().toUpperCase();
         
-        if(text.length < 2) return;
+        const list = document.getElementById('matchesList');
+        
+        // Prevent searching if all boxes are completely empty
+        if(modelText.length < 1 && partText.length < 1 && seqText.length < 1) {
+            list.innerHTML = "";
+            list.style.display = "none";
+            return;
+        }
 
-        const matches = inventoryCache.filter(i => 
-            (i.part_number||"").includes(text) || 
-            (i.description||"").toUpperCase().includes(text) ||
-            (i.model||"").toUpperCase().includes(text) ||
-            (i.location||"").toUpperCase().includes(text) ||
-            (i.sequ_num||"").toUpperCase().includes(text)
-        );
+        const matches = inventoryCache.filter(i => {
+            let mMatch = true;
+            let pMatch = true;
+            let sMatch = true;
 
-        list.style.display = "block";
-        if(matches.length === 0) list.innerHTML = "<div class='search-item' style='color:#999; cursor:default;'>No matching items</div>";
-        else matches.forEach(i => {
-            const d = document.createElement('div');
-            d.className = 'search-item';
-            const loc = i.location || "N/A";
-            const seqHtml = i.sequ_num ? `<span class="seq-tag">SEQ: ${i.sequ_num}</span>` : "";
-            const isLow = i.current_stock <= getMinStockLimit(i);
-            const color = isLow ? 'var(--danger)' : 'var(--success)';
+            if(modelText) {
+                mMatch = (i.model || "").toUpperCase().includes(modelText);
+            }
+            if(partText) {
+                pMatch = (i.part_number || "").toUpperCase().includes(partText) || 
+                         (i.description || "").toUpperCase().includes(partText);
+            }
+            if(seqText) {
+                sMatch = (i.sequ_num || "").toUpperCase().includes(seqText);
+            }
 
-            d.innerHTML = `
-                <div>
-                    <div class="item-main">${i.part_number} <span class="loc-tag">${loc}</span>${seqHtml}</div>
-                    <div class="item-sub">${i.description} ${i.model ? '| ' + i.model : ''}</div>
-                </div>
-                <div style="font-weight:bold; color:${color}">${i.current_stock}</div>
-            `;
-            d.onclick = () => selectItem(i);
-            list.appendChild(d);
+            return mMatch && pMatch && sMatch;
         });
+
+        list.innerHTML = "";
+        list.style.display = "block";
+        
+        if(matches.length === 0) {
+            list.innerHTML = "<div class='search-item' style='color:#999; cursor:default;'>No matching items</div>";
+        } else {
+            matches.forEach(i => {
+                const d = document.createElement('div');
+                d.className = 'search-item';
+                const loc = i.location || "N/A";
+                const seqHtml = i.sequ_num ? `<span class="seq-tag">SEQ: ${i.sequ_num}</span>` : "";
+                const isLow = i.current_stock <= getMinStockLimit(i);
+                const color = isLow ? 'var(--danger)' : 'var(--success)';
+
+                d.innerHTML = `
+                    <div>
+                        <div class="item-main">${i.part_number} <span class="loc-tag">${loc}</span>${seqHtml}</div>
+                        <div class="item-sub">${i.description} ${i.model ? '| ' + i.model : ''}</div>
+                    </div>
+                    <div style="font-weight:bold; color:${color}">${i.current_stock}</div>
+                `;
+                d.onclick = () => selectItem(i);
+                list.appendChild(d);
+            });
+        }
     };
 
     window.selectItem = (i) => {
@@ -959,7 +991,11 @@
         document.getElementById('resStock').innerText = i.current_stock;
         document.getElementById('issueQty').max = i.current_stock;
         document.getElementById('issueQty').value = 1;
-        document.getElementById('searchInput').value = "";
+        
+        // Clear all three search fields
+        document.getElementById('searchModel').value = "";
+        document.getElementById('searchPart').value = "";
+        document.getElementById('searchSeq').value = "";
     };
 
     window.resetSearch = () => {
@@ -1019,6 +1055,7 @@
         renderCart();
     };
 
+
     window.submitIssue = async () => {
         const mr = document.getElementById('issueMR').value.trim();
         const dateInput = document.getElementById('issueDate').value;
@@ -1036,8 +1073,30 @@
         if(!confirm(`Confirm issue of ${issueCart.length} items for MR: ${mr}?`)) return;
 
         const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
-        const randomNum = Math.floor(1000 + Math.random() * 9000);
-        const txnRef = `TXN-${dateStr}-${randomNum}`;
+        let nextSeqStr = "001";
+
+        try {
+            const qRef = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(1));
+            const snapRef = await getDocs(qRef);
+            
+            if (!snapRef.empty) {
+                const lastTxn = snapRef.docs[0].data();
+                if (lastTxn.txn_ref && lastTxn.txn_ref.startsWith(`TXN-${dateStr}-`)) {
+                    const parts = lastTxn.txn_ref.split('-');
+                    if (parts.length === 3) {
+                        const lastSeq = parseInt(parts[2]);
+                        if (!isNaN(lastSeq)) {
+                            nextSeqStr = (lastSeq + 1).toString().padStart(3, '0');
+                        }
+                    }
+                }
+            }
+        } catch(e) { 
+            console.log("Could not fetch last reference, using fallback.", e); 
+            nextSeqStr = Math.floor(1000 + Math.random() * 9000).toString();
+        }
+
+        const txnRef = `TXN-${dateStr}-${nextSeqStr}`;
 
         try {
             for (const item of issueCart) {
@@ -1216,7 +1275,6 @@
         renderStockTable(currentReportData);
     }
 
-    // NORMAL DATE RANGE LOAD
     window.loadTransactionReport = async () => {
         const sVal = document.getElementById('startDate').value;
         const eVal = document.getElementById('endDate').value;
@@ -1249,7 +1307,6 @@
         } catch (e) { console.error(e); }
     };
 
-    // DEEP SEARCH (ALL TIME)
     window.searchHistoryAllTime = async () => {
         const val = document.getElementById("globalHistorySearch").value.trim().toUpperCase();
         if(!val) {
