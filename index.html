@@ -1,1407 +1,1980 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Factory Inventory Pro</title>
-    
+    <title>SMT Inventory Management</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
     <style>
-        /* --- PROFESSIONAL THEME VARIABLES --- */
-        :root {
-            --primary: #1565c0; /* Enterprise Blue */
-            --primary-dark: #0d47a1;
-            --accent: #ff6f00; /* Amber for actions */
-            --bg-body: #f3f4f6;
-            --bg-card: #ffffff;
-            --text-main: #2c3e50;
-            --text-light: #546e7a;
-            --border: #e0e0e0;
-            --success: #2e7d32;
-            --danger: #c62828;
-            --warning: #f57c00;
-            --shadow: 0 2px 8px rgba(0,0,0,0.06);
-        }
+/* ═══════════════════════════════════════════
+   PREFERRED THEME — "Slate Pro"
+   Clean navy/amber palette. Light & Dark.
+═══════════════════════════════════════════ */
+:root {
+    --primary:        #1d4ed8;
+    --primary-dark:   #1e40af;
+    --primary-light:  #eff6ff;
+    --primary-mid:    #bfdbfe;
+    --accent:         #f59e0b;
+    --accent-light:   #fffbeb;
+    --accent-dark:    #d97706;
+    --bg-body:        #f1f5f9;
+    --bg-card:        #ffffff;
+    --bg-input:       #f8fafc;
+    --bg-header:      #0f172a;
+    --text-main:      #0f172a;
+    --text-light:     #64748b;
+    --text-inv:       #ffffff;
+    --border:         #e2e8f0;
+    --border-dark:    #cbd5e1;
+    --success:        #16a34a;
+    --success-light:  #f0fdf4;
+    --danger:         #dc2626;
+    --danger-light:   #fef2f2;
+    --warning:        #d97706;
+    --warning-light:  #fffbeb;
+    --shadow-sm:      0 1px 3px rgba(15,23,42,0.06);
+    --shadow:         0 4px 16px rgba(15,23,42,0.08);
+    --shadow-lg:      0 12px 40px rgba(15,23,42,0.12);
+    --radius:         14px;
+    --radius-sm:      9px;
+    --radius-xs:      5px;
+}
+[data-theme="dark"] {
+    --primary:        #60a5fa;
+    --primary-dark:   #3b82f6;
+    --primary-light:  #172554;
+    --primary-mid:    #1e3a5f;
+    --accent:         #fbbf24;
+    --accent-light:   #451a03;
+    --accent-dark:    #f59e0b;
+    --bg-body:        #020617;
+    --bg-card:        #0f172a;
+    --bg-input:       #1e293b;
+    --bg-header:      #020617;
+    --text-main:      #f8fafc;
+    --text-light:     #94a3b8;
+    --border:         #1e293b;
+    --border-dark:    #334155;
+    --success:        #4ade80;
+    --success-light:  #052e16;
+    --danger:         #f87171;
+    --danger-light:   #450a0a;
+    --warning:        #fbbf24;
+    --warning-light:  #422006;
+    --shadow-sm:      0 1px 3px rgba(0,0,0,0.4);
+    --shadow:         0 4px 16px rgba(0,0,0,0.4);
+    --shadow-lg:      0 12px 40px rgba(0,0,0,0.5);
+}
 
-        body { font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: var(--bg-body); margin: 0; padding: 0; color: var(--text-main); -webkit-font-smoothing: antialiased; }
+/* ── BASE ─────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans','Segoe UI',sans-serif;background:var(--bg-body);margin:0;padding:0;color:var(--text-main);-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
 
-        /* STATUS LIGHT */
-        .status-indicator { position: fixed; top: 20px; right: 20px; background: white; padding: 8px 16px; border-radius: 50px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; z-index: 2000; box-shadow: var(--shadow); border: 1px solid var(--border); color: var(--text-light); }
-        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
-        .dot.green { background-color: var(--success); box-shadow: 0 0 4px var(--success); }
-        .dot.red { background-color: var(--danger); }
+/* ── STATUS DOT ───────────────────────────── */
+.status-indicator{position:fixed;top:16px;right:16px;background:var(--bg-card);padding:6px 14px;border-radius:50px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:7px;z-index:3000;box-shadow:var(--shadow);border:1px solid var(--border);color:var(--text-light)}
+.dot{height:8px;width:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot.green{background:var(--success);box-shadow:0 0 6px var(--success);animation:pulse-dot 2s infinite}
+.dot.red{background:var(--danger)}
 
-        /* --- LOGIN SCREEN --- */
-        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .login-box { background: white; padding: 50px 40px; border-radius: 12px; text-align: center; width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
-        .login-box h2 { margin: 10px 0 30px 0; color: var(--text-main); font-weight: 700; }
-        
-        .login-input-group { width: 100%; margin-bottom: 15px; text-align: left; }
-        .login-box select, .login-box input { 
-            width: 100%; padding: 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; 
-            background: #fafafa; box-sizing: border-box; height: 50px; font-family: inherit;
-        }
-        .login-box select:focus, .login-box input:focus { border-color: var(--primary); background: white; outline: none; }
-        .login-box button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; border-radius: 6px; font-size: 16px; margin-top: 10px; transition: 0.2s; height: 50px; }
-        .login-box button:hover { background: var(--primary-dark); box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3); }
+/* ── LOGIN ────────────────────────────────── */
+#login-screen{position:fixed;inset:0;background:var(--bg-header);display:flex;align-items:center;justify-content:center;z-index:1000}
+.login-pattern{position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.06) 1px,transparent 0);background-size:28px 28px}
+.login-glow{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(29,78,216,.35) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.login-box{background:var(--bg-card);padding:48px 40px;border-radius:20px;text-align:center;width:380px;position:relative;box-shadow:var(--shadow-lg)}
+.login-logo-wrap{width:68px;height:68px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.login-logo-wrap .material-icons{font-size:36px;color:white}
+.login-box h2{margin:0 0 4px;color:var(--text-main);font-weight:800;font-size:22px;letter-spacing:-.3px}
+.login-subtitle{color:var(--text-light);font-size:13px;margin:0 0 28px}
+.login-lbl{display:block;font-size:11px;font-weight:700;color:var(--text-light);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;text-align:left}
+.login-input-group{margin-bottom:14px;text-align:left}
+.login-box select,.login-box input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;background:var(--bg-input);box-sizing:border-box;font-family:inherit;color:var(--text-main);transition:.2s}
+.login-box select:focus,.login-box input:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 3px rgba(29,78,216,.12);background:var(--bg-card)}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border:none;font-weight:700;cursor:pointer;border-radius:9px;font-size:15px;margin-top:8px;transition:.2s;letter-spacing:.3px;font-family:inherit}
+.login-btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(29,78,216,.4)}
+#loginMsg{margin-top:14px;font-size:13px;color:var(--danger);min-height:20px;font-weight:600}
+.pw-wrap{position:relative}
+.pw-eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text-light);font-size:20px!important;transition:.15s}
+.pw-eye:hover{color:var(--text-main)}
 
-        /* LAYOUT */
-        #app-container { display: none; max-width: 1100px; margin: 40px auto; padding: 0 20px; }
-        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: white; padding: 20px 30px; border-radius: 12px; box-shadow: var(--shadow); }
-        .factory-badge { background: #e3f2fd; color: var(--primary); padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 14px; letter-spacing: 0.5px; }
-        .logout-btn { cursor: pointer; color: var(--danger); font-weight: 600; display: flex; align-items: center; gap: 5px; font-size: 14px; transition: 0.2s; }
-        .logout-btn:hover { opacity: 0.7; }
+/* ── APP SHELL ────────────────────────────── */
+#app-container{display:none;max-width:1200px;margin:0 auto;padding:20px 16px 40px}
 
-        /* TABS */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; padding: 0 5px; overflow-x: auto; }
-        .tab { padding: 12px 16px; cursor: pointer; color: var(--text-light); font-weight: 600; display: flex; align-items: center; gap: 8px; border-radius: 8px; transition: 0.2s; white-space: nowrap; }
-        .tab.active { background: white; color: var(--primary); box-shadow: var(--shadow); }
-        .tab:hover:not(.active) { background: rgba(255,255,255,0.6); }
+/* ── HEADER ───────────────────────────────── */
+.header-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;background:var(--bg-header);padding:14px 24px;border-radius:var(--radius);box-shadow:var(--shadow)}
+.header-left{display:flex;align-items:center;gap:12px}
+.app-logo{font-weight:800;font-size:18px;color:white;letter-spacing:-.4px;display:flex;align-items:center;gap:8px}
+.app-logo .material-icons{color:var(--accent);font-size:22px}
+.factory-badge{background:rgba(255,255,255,.12);color:white;padding:4px 12px;border-radius:20px;font-weight:700;font-size:12px;border:1px solid rgba(255,255,255,.15)}
+.header-right{display:flex;align-items:center;gap:10px}
+.hdr-btn{display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);cursor:pointer;font-size:13px;font-weight:600;transition:.2s;font-family:inherit}
+.hdr-btn:hover{background:rgba(255,255,255,.16);color:white}
+.hdr-btn .material-icons{font-size:17px}
+.hdr-btn.danger{border-color:rgba(239,68,68,.4);color:#fca5a5}
+.hdr-btn.danger:hover{background:rgba(239,68,68,.15);color:#f87171}
 
-        /* CARDS & CONTAINERS */
-        .content-section { display: none; animation: fadeIn 0.3s ease; }
-        .content-section.active { display: block; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 25px; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* ── TABS ─────────────────────────────────── */
+.tabs{display:flex;gap:3px;margin-bottom:18px;background:var(--bg-card);padding:5px;border-radius:var(--radius);box-shadow:var(--shadow-sm);border:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:9px 14px;cursor:pointer;color:var(--text-light);font-weight:600;display:flex;align-items:center;gap:6px;border-radius:var(--radius-sm);transition:.18s;white-space:nowrap;font-size:13px;flex-shrink:0}
+.tab.active{background:var(--primary);color:white;box-shadow:0 2px 8px rgba(29,78,216,.3)}
+.tab:hover:not(.active){background:var(--bg-body);color:var(--text-main)}
+.tab .material-icons{font-size:17px}
 
-        /* DASHBOARD METRICS */
-        .dash-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px; }
-        .dash-card { background: white; padding: 20px; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; align-items: center; gap: 15px; }
-        .dash-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        .dash-info h3 { margin: 0; font-size: 14px; color: var(--text-light); font-weight: 600; text-transform: uppercase; }
-        .dash-info p { margin: 5px 0 0 0; font-size: 24px; font-weight: 800; color: var(--text-main); }
-        
-        /* ALERTS */
-        .alert-row { background: #fff3e0; }
-        .alert-badge { background: #ffe0b2; color: #e65100; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 800; }
+/* ── CONTENT SECTIONS ─────────────────────── */
+.content-section{display:none;animation:fadeUp .25s ease}
+.content-section.active{display:block}
 
-        /* FORMS */
-        label { display: block; font-size: 12px; font-weight: 700; color: var(--text-light); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-        input[type="text"], input[type="number"], input[type="date"], input[type="password"], select { width: 100%; padding: 12px; border: 1px solid #cfd8dc; border-radius: 6px; font-size: 14px; box-sizing: border-box; transition: 0.2s; color: var(--text-main); font-family: inherit; }
-        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1); }
-        
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 15px; }
-        .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+/* ── CARDS ────────────────────────────────── */
+.card{background:var(--bg-card);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow-sm);border:1px solid var(--border);margin-bottom:18px}
+.card-accent-t-primary{border-top:3px solid var(--primary)}
+.card-accent-t-accent{border-top:3px solid var(--accent)}
+.card-accent-t-danger{border-top:3px solid var(--danger)}
+.card-accent-l-accent{border-left:4px solid var(--accent)}
 
-        /* BUTTONS */
-        .btn { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-dark); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { background: #1b5e20; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #b71c1c; }
-        .btn-accent { background: var(--accent); color: white; }
-        .btn-accent:hover { background: #ef6c00; }
-        .btn-outline { background: white; border: 1px solid var(--border); color: var(--text-light); }
-        .btn-outline:hover { background: #f5f5f5; border-color: #bbb; }
+/* ── DASHBOARD STAT CARDS ─────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.stat-card{background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;right:-20px;top:-20px;width:90px;height:90px;border-radius:50%;opacity:.08}
+.stat-card.blue::before{background:var(--primary)}
+.stat-card.amber::before{background:var(--accent)}
+.stat-card.green::before{background:var(--success)}
+.stat-card.red::before{background:var(--danger)}
+.stat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.stat-icon .material-icons{font-size:22px}
+.stat-icon.blue{background:var(--primary-light);color:var(--primary)}
+.stat-icon.amber{background:var(--accent-light);color:var(--accent-dark)}
+.stat-icon.green{background:var(--success-light);color:var(--success)}
+.stat-icon.red{background:var(--danger-light);color:var(--danger)}
+.stat-value{font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1;color:var(--text-main)}
+.stat-label{font-size:12px;font-weight:600;color:var(--text-light);margin-top:6px;text-transform:uppercase;letter-spacing:.4px}
+.stat-sub{font-size:12px;color:var(--text-light);margin-top:4px}
 
-        /* SEARCH RESULTS */
-        .search-container { position: relative; }
-        .search-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; max-height: 300px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.1); display: none; margin-top: 5px; }
-        .search-item { padding: 12px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .search-item:hover { background: #f5f9ff; }
-        .item-main { font-weight: 600; color: var(--primary); }
-        .item-sub { font-size: 12px; color: var(--text-light); }
-        .loc-tag { background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid #ffe0b2; margin-right: 5px; }
-        .seq-tag { background: #e8eaf6; color: #3f51b5; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid #c5cae9; }
+/* ── DASH ACTIVITY FEED ───────────────────── */
+.activity-feed{display:flex;flex-direction:column;gap:0}
+.activity-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.activity-row:last-child{border-bottom:none}
+.activity-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.activity-icon .material-icons{font-size:17px}
+.activity-body{flex:1;min-width:0}
+.activity-title{font-weight:700;font-size:13px;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.activity-meta{font-size:11px;color:var(--text-light);margin-top:1px}
+.activity-qty{font-weight:800;font-size:14px;color:var(--danger);flex-shrink:0}
+.activity-date{font-size:11px;color:var(--text-light);flex-shrink:0;text-align:right}
 
-        /* TABLES & CART */
-        .table-wrapper { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-        
-        /* SCROLLABLE TABLES */
-        .dash-table-container { overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
-        .dash-table-container th { position: sticky; top: 0; z-index: 10; background: #f8f9fa; border-bottom: 2px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .dash-table-container table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th { background: #f8f9fa; color: var(--text-light); font-weight: 600; padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
-        th:hover { background: #e3f2fd; color: var(--primary); }
-        td { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; color: var(--text-main); }
-        tr:last-child td { border-bottom: none; }
-        .remove-link { color: var(--danger); font-weight: 600; cursor: pointer; font-size: 12px; text-decoration: none; }
-        .remove-link:hover { text-decoration: underline; }
+/* ── LOW STOCK STRIP ──────────────────────── */
+.low-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--radius-xs);background:var(--warning-light);border:1px solid rgba(217,119,6,.15);margin-bottom:6px}
+.low-row:last-child{margin-bottom:0}
+.low-part{font-weight:700;font-size:13px;color:var(--text-main)}
+.low-desc{font-size:11px;color:var(--text-light);margin-top:1px}
+.low-badge{background:var(--danger);color:white;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:800;flex-shrink:0}
 
-        /* UTILS */
-        .section-title { font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; }
-        .password-wrapper { position: relative; width: 100%; }
-        .password-toggle { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; z-index: 10; }
-        .selected-item-card { background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 8px; padding: 20px; margin-top: 20px; display: none; }
-        .empty-state { text-align: center; padding: 40px; color: var(--text-light); font-style: italic; }
+/* ── QUICK ACTIONS ────────────────────────── */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qa-btn{display:flex;align-items:center;gap:10px;padding:14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--bg-input);cursor:pointer;transition:.18s;text-align:left}
+.qa-btn:hover{border-color:var(--primary);background:var(--primary-light);transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+.qa-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qa-icon .material-icons{font-size:19px}
+.qa-label{font-size:13px;font-weight:700;color:var(--text-main)}
+.qa-hint{font-size:11px;color:var(--text-light);margin-top:1px}
 
-        /* Custom File Input */
-        .file-upload-wrapper { position: relative; display: inline-block; margin-bottom: 15px; }
-        .file-upload-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-        .file-upload-btn { display: inline-block; padding: 10px 20px; border: 1px solid var(--border); border-radius: 6px; background: #fafafa; color: var(--text-light); font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .file-upload-btn:hover { background: #f0f0f0; border-color: #ccc; }
-        
-        /* FIXED HEIGHT CONTROLS */
-        .control-height { height: 44px !important; box-sizing: border-box !important; margin: 0 !important; }
+/* ── FORMS ────────────────────────────────── */
+label{display:block;font-size:11px;font-weight:700;color:var(--text-light);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+input[type=text],input[type=number],input[type=date],input[type=password],select,textarea{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;box-sizing:border-box;transition:.2s;color:var(--text-main);font-family:inherit;background:var(--bg-input)}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 3px rgba(29,78,216,.1);background:var(--bg-card)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+
+/* ── BUTTONS ──────────────────────────────── */
+.btn{padding:10px 20px;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.18s;font-family:inherit}
+.btn .material-icons{font-size:16px}
+.btn-primary{background:var(--primary);color:white}
+.btn-primary:hover{background:var(--primary-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(29,78,216,.3)}
+.btn-success{background:var(--success);color:white}
+.btn-success:hover{background:#15803d;transform:translateY(-1px)}
+.btn-danger{background:var(--danger);color:white}
+.btn-danger:hover{background:#b91c1c}
+.btn-accent{background:var(--accent);color:white}
+.btn-accent:hover{background:var(--accent-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(245,158,11,.3)}
+.btn-outline{background:var(--bg-card);border:1.5px solid var(--border);color:var(--text-light)}
+.btn-outline:hover{background:var(--bg-body);border-color:var(--border-dark);color:var(--text-main)}
+.btn-ghost{background:transparent;border:none;color:var(--text-light);padding:7px 12px}
+.btn-ghost:hover{background:var(--bg-body);color:var(--text-main)}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-lg{padding:13px 28px;font-size:14px}
+.btn-block{width:100%}
+.ctrl-h{height:44px!important;box-sizing:border-box!important;margin:0!important}
+
+/* ── TABLES ───────────────────────────────── */
+.tbl-wrap{border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.tbl-scroll{overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)}
+.tbl-scroll th{position:sticky;top:0;z-index:10;background:var(--bg-body)!important;box-shadow:0 2px 4px rgba(0,0,0,.04)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--bg-body);color:var(--text-light);font-weight:700;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);user-select:none;font-size:11px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer}
+th:hover{background:var(--primary-light);color:var(--primary)}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-main);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg-body);transition:background .1s}
+.rm-link{color:var(--danger);font-weight:700;cursor:pointer;font-size:12px}
+.rm-link:hover{text-decoration:underline}
+
+/* ── SEARCH DROPDOWN ──────────────────────── */
+.search-con{position:relative}
+/* Legacy small dropdown — hidden, replaced by panel below */
+.search-list{position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-sm);max-height:300px;overflow-y:auto;z-index:500;box-shadow:var(--shadow-lg);display:none;margin-top:4px}
+.s-item{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:.14s}
+.s-item:last-child{border-bottom:none}
+.s-item:hover{background:var(--primary-light)}
+.s-main{font-weight:700;color:var(--primary);font-size:13px}
+.s-sub{font-size:11px;color:var(--text-light);margin-top:2px}
+
+/* ── SEARCH RESULTS PANEL (replaces dropdown) */
+.search-results-panel{display:none;margin-top:10px;border:1.5px solid var(--primary-mid);border-radius:var(--radius-sm);background:var(--bg-card);overflow:hidden;box-shadow:var(--shadow)}
+.srp-header{background:var(--primary-light);padding:8px 14px;font-size:12px;font-weight:700;color:var(--primary);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--primary-mid)}
+.srp-scroll{max-height:260px;overflow-y:auto}
+.srp-item{padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;transition:.14s}
+.srp-item:last-child{border-bottom:none}
+.srp-item:hover{background:var(--primary-light)}
+.srp-left{min-width:0}
+.srp-part{font-weight:800;font-size:13px;color:var(--primary);display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:3px}
+.srp-desc{font-size:12px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srp-model{font-size:11px;color:var(--text-light);margin-top:2px}
+.srp-stock{text-align:right;flex-shrink:0}
+.srp-qty{font-size:20px;font-weight:800;line-height:1}
+.srp-qty-label{font-size:10px;color:var(--text-light);text-transform:uppercase;margin-top:1px}
+
+/* ── TAGS ─────────────────────────────────── */
+.loc-tag{background:var(--accent-light);color:var(--accent-dark);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid rgba(217,119,6,.2);margin-right:4px;font-family:'JetBrains Mono',monospace}
+.seq-tag{background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--primary-mid);font-family:'JetBrains Mono',monospace}
+.role-tag{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block}
+.role-admin{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.role-staff{background:var(--primary-light);color:var(--primary);border:1px solid var(--primary-mid)}
+[data-theme="dark"] .role-admin{background:#422006;color:#fcd34d;border-color:#78350f}
+
+/* ── SELECTED ITEM ────────────────────────── */
+.sel-card{background:var(--primary-light);border:1.5px solid var(--primary-mid);border-radius:var(--radius-sm);padding:18px;margin-top:14px;display:none}
+.stock-num{font-size:32px;font-weight:800;letter-spacing:-1px;line-height:1;color:var(--success)}
+.stock-num.low{color:var(--danger)}
+
+/* ── SECTION TITLE ────────────────────────── */
+.sec-title{font-size:15px;font-weight:800;color:var(--text-main);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;letter-spacing:-.2px}
+.sec-title .material-icons{font-size:19px;color:var(--primary)}
+
+/* ── CART EMP GROUP ───────────────────────── */
+.emp-group-header{background:var(--bg-body);padding:7px 14px;font-size:12px;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border)}
+
+/* ── INFO BOX ─────────────────────────────── */
+.info-box{background:var(--primary-light);border:1px solid var(--primary-mid);border-radius:var(--radius-sm);padding:11px 14px;font-size:13px;color:var(--text-light);margin-bottom:14px;display:flex;gap:8px;align-items:flex-start}
+.info-box .material-icons{font-size:17px;color:var(--primary);flex-shrink:0;margin-top:1px}
+
+/* ── USER MANAGEMENT ──────────────────────── */
+.user-card{background:var(--bg-input);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:.18s}
+.user-card:hover{border-color:var(--primary);background:var(--primary-light)}
+.user-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:15px;flex-shrink:0}
+.user-name{font-weight:700;font-size:14px;color:var(--text-main)}
+.user-meta{font-size:12px;color:var(--text-light);margin-top:2px}
+
+/* ── MISC ─────────────────────────────────── */
+.empty-state{text-align:center;padding:32px;color:var(--text-light)}
+.empty-state .material-icons{font-size:38px;opacity:.3;display:block;margin-bottom:8px}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+.badge-ref{color:var(--primary);font-weight:700;font-size:11px;font-family:'JetBrains Mono',monospace}
+.loading-row{text-align:center;padding:18px;color:var(--primary);font-weight:600;display:none}
+.loading-row .material-icons{vertical-align:middle;margin-right:6px;animation:spin 1s linear infinite}
+
+/* File input */
+.file-wrap{position:relative;display:inline-block}
+.file-wrap input[type=file]{position:absolute;left:0;top:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.file-btn{display:inline-block;padding:9px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-light);font-weight:600;cursor:pointer;transition:.2s;font-size:13px}
+.file-btn:hover{background:var(--bg-body);border-color:var(--border-dark)}
+
+/* Print */
+@media print{body *{visibility:hidden!important}#printSlip,#printSlip *{visibility:visible!important}#printSlip{position:fixed;inset:0;background:white;z-index:9999;padding:30px 40px;display:block!important}}
+#printSlip{display:none}
+.p-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #1d4ed8}
+.p-header h1{margin:0;font-size:18px;color:#1d4ed8}
+.p-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.p-meta strong{display:block;font-size:10px;text-transform:uppercase;color:#64748b}
+.p-meta span{font-size:14px;font-weight:700;color:#0f172a}
+.p-table{width:100%;border-collapse:collapse;font-size:13px}
+.p-table th{background:#1d4ed8;color:white;padding:8px 12px;text-align:left}
+.p-table td{padding:8px 12px;border-bottom:1px solid #e2e8f0}
+.p-footer{margin-top:28px;display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:12px}
+.sig-box{border-top:1px solid #0f172a;padding-top:4px;font-size:11px;color:#64748b;text-align:center;width:150px}
+
+/* ── EDIT MODAL ───────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:4000;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
+.modal-box{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow-lg);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:fadeUp .2s ease}
+.modal-header{padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start}
+.modal-title{font-size:16px;font-weight:800;color:var(--text-main);display:flex;align-items:center;gap:8px}
+.modal-title .material-icons{font-size:19px;color:var(--primary)}
+.modal-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--bg-body);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-light);transition:.15s;flex-shrink:0}
+.modal-close:hover{background:var(--danger-light);color:var(--danger)}
+.modal-close .material-icons{font-size:18px}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:0 24px 20px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.modal-info{background:var(--bg-body);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--text-light)}
+.modal-info strong{color:var(--text-main)}
+.qty-warning{background:var(--warning-light);border:1px solid rgba(217,119,6,.2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--warning);margin-top:8px;display:none}
+.qty-warning .material-icons{font-size:15px;vertical-align:middle;margin-right:4px}
+
+/* Responsive */
+@media(max-width:900px){.stat-grid{grid-template-columns:1fr 1fr}.dash-2col{grid-template-columns:1fr!important}}
+@media(max-width:600px){#app-container{padding:10px 8px 30px}.stat-grid{grid-template-columns:1fr 1fr}.grid-3,.grid-4{grid-template-columns:1fr}.header-bar{padding:12px 14px}.card{padding:16px}.tab .tab-lbl{display:none}}
     </style>
 </head>
 <body>
 
-<div class="status-indicator">
-    <span class="dot" id="statusDot"></span>
-    <span id="statusText">Connecting...</span>
-</div>
+<div class="status-indicator"><span class="dot" id="statusDot"></span><span id="statusText">Connecting...</span></div>
+<div id="printSlip"></div>
 
+<!-- ═══════════════ LOGIN ═══════════════ -->
 <div id="login-screen">
+    <div class="login-pattern"></div>
+    <div class="login-glow"></div>
     <div class="login-box">
-        <span class="material-icons" style="font-size: 60px; color: var(--primary); margin-bottom: 10px;">lock_person</span>
-        <h2>Factory Inventory</h2>
+        <div class="login-logo-wrap"><span class="material-icons">inventory_2</span></div>
+        <h2>SMT Inventory Management</h2>
+        <p class="login-subtitle">Select your factory and enter your PIN</p>
         <div class="login-input-group">
+            <span class="login-lbl">Factory</span>
             <select id="factorySelect">
                 <option value="FTY01">FACTORY 01</option>
+                <option value="FTY02">FACTORY 02</option>
                 <option value="FTY03">FACTORY 03</option>
                 <option value="FTY04">FACTORY 04</option>
                 <option value="FTY05">FACTORY 05</option>
             </select>
         </div>
         <div class="login-input-group">
-            <div class="password-wrapper">
-                <input type="password" id="loginPass" placeholder="Enter PIN">
-                <span class="material-icons password-toggle" onclick="togglePass('loginPass', this)">visibility</span>
+            <span class="login-lbl">PIN</span>
+            <div class="pw-wrap">
+                <input type="password" id="loginPass" placeholder="Enter your PIN">
+                <span class="material-icons pw-eye" onclick="togglePass('loginPass',this)">visibility</span>
             </div>
         </div>
-        <button onclick="login()">LOGIN</button>
-        <p id="loginMsg" style="margin-top:15px; font-size:14px; color:#d32f2f;"></p>
+        <button class="login-btn" onclick="login()">
+            <span class="material-icons" style="font-size:18px;vertical-align:middle;margin-right:4px;">login</span> Sign In
+        </button>
+        <p id="loginMsg"></p>
     </div>
 </div>
 
+<!-- ═══════════════ APP ═══════════════ -->
 <div id="app-container">
+
+    <!-- HEADER -->
     <div class="header-bar">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <div style="font-weight:700; font-size:18px; color:var(--text-main);">IMS Pro</div>
+        <div class="header-left">
+            <div class="app-logo"><span class="material-icons">inventory_2</span> SMT Inventory</div>
             <span class="factory-badge" id="displayFactory"></span>
         </div>
-        <div class="logout-btn" onclick="location.reload()">
-            <span class="material-icons">logout</span> Logout
+        <div class="header-right">
+            <button class="hdr-btn" onclick="toggleTheme()" title="Toggle theme"><span class="material-icons" id="themeIcon">dark_mode</span></button>
+            <button class="hdr-btn danger" onclick="doLogout()"><span class="material-icons">logout</span><span>Logout</span></button>
         </div>
     </div>
 
+    <!-- TABS -->
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('dashboard-tab', event)"><span class="material-icons">dashboard</span> Dashboard</div>
-        <div class="tab" onclick="switchTab('issue-tab', event)"><span class="material-icons">shopping_cart</span> Issue Items</div>
-        <div class="tab" onclick="switchTab('receive-tab', event)"><span class="material-icons">add_box</span> Add Stock</div>
-        <div class="tab" onclick="switchTab('adv-search-tab', event)"><span class="material-icons">travel_explore</span> Advanced Search</div>
-        
-        <div class="tab" onclick="switchTab('history-tab', event)"><span class="material-icons">history</span> Issue History</div>
-        <div class="tab" onclick="switchTab('stock-tab', event)"><span class="material-icons">inventory</span> Current Stock</div>
-        
-        <div class="tab" onclick="switchTab('settings-tab', event)"><span class="material-icons">settings</span> Settings</div>
+        <div class="tab active" onclick="switchTab('tab-dashboard',event)"><span class="material-icons">dashboard</span><span class="tab-lbl">Dashboard</span></div>
+        <div class="tab" onclick="switchTab('tab-issue',event)"><span class="material-icons">shopping_cart</span><span class="tab-lbl">Issue Items</span></div>
+        <div class="tab" onclick="switchTab('tab-receive',event)"><span class="material-icons">add_box</span><span class="tab-lbl">Add Stock</span></div>
+        <div class="tab" onclick="switchTab('tab-search',event)"><span class="material-icons">travel_explore</span><span class="tab-lbl">Search</span></div>
+        <div class="tab" onclick="switchTab('tab-history',event)"><span class="material-icons">history</span><span class="tab-lbl">History</span></div>
+        <div class="tab" onclick="switchTab('tab-stock',event)"><span class="material-icons">inventory</span><span class="tab-lbl">Stock</span></div>
+        <div class="tab" onclick="switchTab('tab-settings',event)"><span class="material-icons">settings</span><span class="tab-lbl">Settings</span></div>
     </div>
 
-    <div id="dashboard-tab" class="content-section active">
-        <div class="dash-grid">
-            <div class="dash-card">
-                <div class="dash-icon" style="background:#e3f2fd; color:#1565c0;"><span class="material-icons">category</span></div>
-                <div class="dash-info"><h3>Unique Parts</h3><p id="dashTotalItems">0</p></div>
+    <!-- ═════════ DASHBOARD ═════════ -->
+    <div id="tab-dashboard" class="content-section active">
+        <!-- KPI Cards -->
+        <div class="stat-grid">
+            <div class="stat-card blue">
+                <div class="stat-icon blue"><span class="material-icons">category</span></div>
+                <div class="stat-value" id="dashTotalItems">0</div>
+                <div class="stat-label">Unique Parts</div>
+                <div class="stat-sub" id="dashTotalQty">0 items in stock</div>
             </div>
-            <div class="dash-card">
-                <div class="dash-icon" style="background:#ffe0b2; color:#ef6c00;"><span class="material-icons">warning</span></div>
-                <div class="dash-info"><h3>Low Stock</h3><p id="dashLowStock" style="color:#ef6c00;">0</p></div>
+            <div class="stat-card amber">
+                <div class="stat-icon amber"><span class="material-icons">warning_amber</span></div>
+                <div class="stat-value" id="dashLowStock" style="color:var(--danger)">0</div>
+                <div class="stat-label">Low Stock Alerts</div>
+                <div class="stat-sub">Need re-ordering</div>
             </div>
-            <div class="dash-card">
-                <div class="dash-icon" style="background:#e8f5e9; color:#2e7d32;"><span class="material-icons">inventory_2</span></div>
-                <div class="dash-info"><h3>Items in Stock</h3><p id="dashTotalQty">0</p></div>
+            <div class="stat-card green">
+                <div class="stat-icon green"><span class="material-icons">swap_vert</span></div>
+                <div class="stat-value" id="dashIssuedToday">0</div>
+                <div class="stat-label">Issued Today</div>
+                <div class="stat-sub">Items issued today</div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-icon red"><span class="material-icons">people</span></div>
+                <div class="stat-value" id="dashUserCount">0</div>
+                <div class="stat-label">Registered Users</div>
+                <div class="stat-sub">In this factory</div>
             </div>
         </div>
 
-        <div class="card" style="border-top: 5px solid var(--accent);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <div class="section-title" style="margin-bottom: 0; border: none; padding-bottom: 0;"><span class="material-icons" style="color:var(--accent);">notification_important</span> Re-Order Alerts (Low Stock)</div>
-                <button class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;" onclick="exportTableToExcel('alertTable', 'Low_Stock_Alerts')"><span class="material-icons" style="font-size: 18px;">download</span> Export List</button>
+        <!-- Two column -->
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;" class="dash-2col">
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="sec-title"><span class="material-icons">schedule</span> Recent Transactions
+                    <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="switchTabDirect('tab-history')"><span class="material-icons">open_in_new</span></button>
+                </div>
+                <div id="dashActivityFeed" class="activity-feed">
+                    <div class="empty-state"><span class="material-icons">history</span>No activity yet</div>
+                </div>
             </div>
-            <div class="dash-table-container" style="max-height: 300px;">
+
+            <!-- Right column -->
+            <div style="display:flex;flex-direction:column;gap:18px;">
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="sec-title"><span class="material-icons">bolt</span> Quick Actions</div>
+                    <div class="qa-grid">
+                        <div class="qa-btn" onclick="switchTabDirect('tab-issue')">
+                            <div class="qa-icon" style="background:var(--primary-light);color:var(--primary)"><span class="material-icons">shopping_cart</span></div>
+                            <div><div class="qa-label">Issue Items</div><div class="qa-hint">Create MR</div></div>
+                        </div>
+                        <div class="qa-btn" onclick="switchTabDirect('tab-receive')">
+                            <div class="qa-icon" style="background:var(--success-light);color:var(--success)"><span class="material-icons">add_box</span></div>
+                            <div><div class="qa-label">Add Stock</div><div class="qa-hint">Receive items</div></div>
+                        </div>
+                        <div class="qa-btn" onclick="switchTabDirect('tab-stock')">
+                            <div class="qa-icon" style="background:var(--accent-light);color:var(--accent-dark)"><span class="material-icons">inventory</span></div>
+                            <div><div class="qa-label">View Stock</div><div class="qa-hint">Current levels</div></div>
+                        </div>
+                        <div class="qa-btn" onclick="exportTableToExcel('stockTable','Current_Stock');switchTabDirect('tab-stock')">
+                            <div class="qa-icon" style="background:var(--danger-light);color:var(--danger)"><span class="material-icons">download</span></div>
+                            <div><div class="qa-label">Export Stock</div><div class="qa-hint">Download Excel</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Re-Order Alerts — Full width, full detail table -->
+        <div class="card card-accent-t-accent">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+                <div class="sec-title" style="margin-bottom:0;border:none;padding-bottom:0">
+                    <span class="material-icons" style="color:var(--accent)">notification_important</span>
+                    Re-Order Alerts — Low Stock
+                    <span id="lowStockCountBadge" style="background:var(--danger);color:white;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:800;margin-left:6px">0</span>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="exportTableToExcel('alertTable','Low_Stock_Alerts')">
+                    <span class="material-icons">download</span> Export List
+                </button>
+            </div>
+            <div class="tbl-scroll" style="max-height:320px">
                 <table id="alertTable">
-                    <thead><tr><th>Location</th><th>Seq</th><th>Model</th><th>Part No</th><th>Description</th><th style="text-align:right;">Current Stock</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="section-title"><span class="material-icons">history</span> Recent Activity (This Month)</div>
-            <div class="dash-table-container" style="max-height: 300px;">
-                <table id="dashHistoryTable">
-                    <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Qty</th></tr></thead>
-                    <tbody></tbody>
+                    <thead><tr>
+                        <th>Location</th>
+                        <th>Seq No</th>
+                        <th>Model</th>
+                        <th>Part No</th>
+                        <th>Description</th>
+                        <th style="text-align:right">Min Level</th>
+                        <th style="text-align:right">Current Stock</th>
+                    </tr></thead>
+                    <tbody id="alertTableBody">
+                        <tr><td colspan="7" class="empty-state" style="padding:20px">Loading...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <div id="issue-tab" class="content-section">
-        <div class="card" style="border-top: 5px solid var(--primary);">
-            <div class="section-title"><span class="material-icons">badge</span> Requisition Details</div>
-            <p style="font-size:13px; color:var(--text-light); margin-top:-10px; margin-bottom:15px;">
-                * Employee ID and Department are saved <b>per item</b> when you click "Add". You can change them between items for the same MR.
-            </p>
-
-            <div class="grid-4">
-                <div><label>MR Number</label><input type="text" id="issueMR" placeholder="e.g. MR-2026-001"></div>
-                <div><label>Date of Issue</label><input type="date" id="issueDate"></div>
-                <div><label style="color:var(--primary);">Assign To (Emp ID)</label><input type="text" id="issueEmp" placeholder="e.g. 10455"></div>
-                <div><label style="color:var(--primary);">Assign To (Dept)</label><input type="text" id="issueDept" placeholder="e.g. Sewing Line 4"></div>
+    <!-- ═════════ ISSUE ITEMS ═════════ -->
+    <div id="tab-issue" class="content-section">
+        <div class="card card-accent-t-primary">
+            <div class="sec-title"><span class="material-icons">receipt_long</span> MR Details</div>
+            <div class="grid-2">
+                <div><label>MR Number *</label><input type="text" id="issueMR" placeholder="e.g. MR-2026-001"></div>
+                <div><label>Date of Issue *</label><input type="date" id="issueDate"></div>
+            </div>
+            <div class="info-box">
+                <span class="material-icons">people_alt</span>
+                <div>One MR can cover <strong>multiple employees</strong>. Set the Employee ID &amp; Department for each item before clicking "Add to Cart" — you can change them between items.</div>
+            </div>
+            <div class="grid-2">
+                <div>
+                    <label>Assign to — Employee ID</label>
+                    <input type="text" id="issueEmp" placeholder="e.g. 10455" list="empList" autocomplete="off">
+                    <datalist id="empList"></datalist>
+                </div>
+                <div><label>Department / Line</label><input type="text" id="issueDept" placeholder="e.g. Sewing Line 4" list="deptList" autocomplete="off"><datalist id="deptList"></datalist></div>
             </div>
         </div>
 
         <div class="card">
-            <div class="section-title"><span class="material-icons">search</span> Find & Add Items</div>
-            
-            <div class="search-container">
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <div style="flex: 1;">
-                        <input type="text" class="control-height" id="searchModel" placeholder="Model (e.g., JUKI)" onkeyup="liveSearch()" autocomplete="off">
-                    </div>
-                    <div style="flex: 1.5;">
-                        <input type="text" class="control-height" id="searchPart" placeholder="Part No or Name" onkeyup="liveSearch()" autocomplete="off">
-                    </div>
-                    <div style="flex: 1;">
-                        <input type="text" class="control-height" id="searchSeq" placeholder="Seq No" onkeyup="liveSearch()" autocomplete="off">
-                    </div>
-                    <div>
-                        <button class="btn btn-primary control-height" onclick="liveSearch()"><span class="material-icons">search</span> Search</button>
-                    </div>
+            <div class="sec-title"><span class="material-icons">search</span> Find &amp; Add Item</div>
+            <div class="search-con">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <div style="flex:1;min-width:110px"><input type="text" class="ctrl-h" id="searchModel" placeholder="Model / Machine" onkeyup="liveSearch()" autocomplete="off"></div>
+                    <div style="flex:1.8;min-width:150px"><input type="text" class="ctrl-h" id="searchPart" placeholder="Part No or Description" onkeyup="liveSearch()" autocomplete="off"></div>
+                    <div style="flex:1;min-width:90px"><input type="text" class="ctrl-h" id="searchSeq" placeholder="Seq No" onkeyup="liveSearch()" autocomplete="off"></div>
+                    <button class="btn btn-primary ctrl-h" onclick="liveSearch()"><span class="material-icons">search</span></button>
+                    <button class="btn btn-ghost ctrl-h" id="searchClearBtn" onclick="clearSearch()" style="display:none" title="Clear search"><span class="material-icons">close</span></button>
                 </div>
+                <!-- Legacy hidden dropdown kept for admin search compatibility -->
                 <div id="matchesList" class="search-list"></div>
+                <!-- New: full results panel -->
+                <div id="searchResultsPanel" class="search-results-panel">
+                    <div class="srp-header">
+                        <span id="srp-count">0 items found</span>
+                        <span style="font-size:11px;font-weight:400;color:var(--text-light)">Click an item to select it</span>
+                    </div>
+                    <div class="srp-scroll" id="srp-scroll"></div>
+                </div>
             </div>
 
-            <div id="selectedItemBox" class="selected-item-card">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <div style="font-size: 18px; font-weight: 700; color: var(--text-main);" id="resPart"></div>
-                        <div style="color: var(--text-light); margin-top: 4px;" id="resDesc"></div>
-                        <div style="margin-top: 8px;">
+            <div id="selectedItemBox" class="sel-card">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+                    <div style="flex:1;min-width:180px">
+                        <div style="font-size:17px;font-weight:800;color:var(--text-main)" id="resPart"></div>
+                        <div style="color:var(--text-light);margin-top:3px;font-size:13px" id="resDesc"></div>
+                        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
                             <span class="loc-tag" id="resLoc"></span>
-                            <span class="seq-tag" id="resSeq" style="display:none;"></span>
+                            <span class="seq-tag" id="resSeq" style="display:none"></span>
                         </div>
                     </div>
-                    <div style="text-align: right;">
-                        <label>Stock</label>
-                        <div style="font-size: 24px; font-weight: 800; color: var(--success);" id="resStock"></div>
+                    <div style="text-align:right;flex-shrink:0">
+                        <label style="text-align:right">Available Stock</label>
+                        <div class="stock-num" id="resStock"></div>
                     </div>
                 </div>
-                <div style="border-top: 1px solid #bbdefb; margin-top: 15px; padding-top: 15px;">
-                    <label style="margin-bottom: 5px;">Issue Quantity</label>
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <input type="number" id="issueQty" value="1" min="1" class="control-height" style="width: 100px; font-size: 18px; font-weight: bold; text-align: center;">
-                            <button class="btn btn-accent control-height" onclick="addToCart()"><span class="material-icons">add_shopping_cart</span> Add</button>
+                <div style="border-top:1px solid var(--primary-mid);margin-top:14px;padding-top:14px">
+                    <label>Issue Quantity</label>
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+                        <div style="display:flex;gap:10px;align-items:center">
+                            <input type="number" id="issueQty" value="1" min="1" class="ctrl-h" style="width:110px;font-size:18px;font-weight:800;text-align:center">
+                            <button class="btn btn-accent ctrl-h" onclick="addToCart()"><span class="material-icons">add_shopping_cart</span> Add to Cart</button>
                         </div>
-                        <button class="btn btn-outline control-height" style="border:none; background:transparent; color: #777;" onclick="resetSearch()">Cancel</button>
+                        <button class="btn btn-ghost ctrl-h" onclick="resetSearch()"><span class="material-icons">close</span> Cancel</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="cartSection" class="card" style="display:none; border-left: 5px solid var(--accent);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <div class="section-title" style="margin-bottom:0; border:none;"><span class="material-icons" style="color:var(--accent);">list_alt</span> Items to Issue</div>
-                <span class="remove-link" onclick="clearCart()">Clear All</span>
+        <!-- Cart -->
+        <div id="cartSection" class="card card-accent-l-accent" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                <div class="sec-title" style="margin-bottom:0;border:none;padding-bottom:0"><span class="material-icons" style="color:var(--accent)">list_alt</span> Cart — Items to Issue</div>
+                <span class="rm-link" onclick="clearCart()">Clear All</span>
             </div>
-            <div class="table-wrapper">
+            <div class="tbl-wrap">
                 <table id="cartTable">
-                    <thead><tr><th>Location</th><th>Part No</th><th>Description</th><th>Emp ID</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Action</th></tr></thead>
+                    <thead><tr><th>Emp / Dept</th><th>Location</th><th>Part No</th><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Action</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-success" style="padding: 14px 30px;" onclick="submitIssue()"><span class="material-icons">check_circle</span> Finalize & Issue All</button>
+            <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-success btn-lg" onclick="submitIssue()"><span class="material-icons">check_circle</span> Finalise &amp; Issue All</button>
             </div>
         </div>
     </div>
 
-    <div id="receive-tab" class="content-section">
-        <div class="card">
-            <div class="section-title"><span class="material-icons">add_circle_outline</span> Manual Entry</div>
+    <!-- ═════════ ADD STOCK ═════════ -->
+    <div id="tab-receive" class="content-section">
+        <div class="card card-accent-t-primary">
+            <div class="sec-title"><span class="material-icons">add_circle_outline</span> Manual Stock Entry</div>
             <div class="grid-3">
                 <div><label>1. Location / Bin</label><input type="text" id="newLoc" placeholder="e.g. Rack A-12"></div>
-                <div><label>2. Sequence No</label><input type="text" id="newSequNum" placeholder="e.g. 001, A-1"></div>
+                <div><label>2. Sequence No</label><input type="text" id="newSequNum" placeholder="e.g. 001"></div>
                 <div><label>3. Model / Machine</label><input type="text" id="newModel" placeholder="e.g. JUKI-9000"></div>
             </div>
             <div class="grid-3">
-                <div style="grid-column: span 2;"><label>4. Part Number</label><input type="text" id="newPartNo" placeholder="Scan or Type Part No"></div>
-                <div><label>6. Quantity</label><input type="number" id="newQty" value="1" style="font-weight: bold;"></div>
+                <div style="grid-column:span 2"><label>4. Part Number</label><input type="text" id="newPartNo" placeholder="Scan or type Part No"></div>
+                <div><label>5. Quantity</label><input type="number" id="newQty" value="1" style="font-weight:bold"></div>
             </div>
-            <div style="margin-bottom: 20px;">
-                <label>5. Description</label><input type="text" id="newDesc" placeholder="Item Name / Specification">
-            </div>
-            <button class="btn btn-success" style="width: 100%;" onclick="receiveItem()"><span class="material-icons">save</span> Add to Inventory</button>
+            <div style="margin-bottom:16px"><label>6. Description</label><input type="text" id="newDesc" placeholder="Item name / specification"></div>
+            <button class="btn btn-success btn-block btn-lg" onclick="receiveItem()"><span class="material-icons">save</span> Add to Inventory</button>
         </div>
 
-        <div class="card" style="text-align: center; border-style: dashed; background: #fafafa;">
-            <div class="section-title" style="justify-content: center; border:none; color: var(--primary);"><span class="material-icons">cloud_upload</span> Bulk Import</div>
-            <p style="color: var(--text-light); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Excel Columns: <b>Location, SeqNo, Model, PartNo, Desc, Qty</b></p>
-            <div class="file-upload-wrapper">
-                <button class="file-upload-btn">Choose File</button>
+        <div class="card" style="text-align:center;border-style:dashed;background:var(--bg-body)">
+            <div class="sec-title" style="justify-content:center;border:none;color:var(--primary);margin-bottom:10px"><span class="material-icons">cloud_upload</span> Bulk Import via Excel</div>
+            <p style="color:var(--text-light);font-size:13px;margin:0 0 16px">Columns: <strong>Location, SeqNo, Model, PartNo, Desc, Qty</strong></p>
+            <div class="file-wrap">
+                <button class="file-btn"><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px">attach_file</span> Choose File</button>
                 <input type="file" id="excelFile" accept=".xlsx" onchange="updateFileName(this)">
             </div>
-            <span id="fileNameDisplay" style="margin-left: 10px; color: var(--text-light); font-size: 14px;">No file chosen</span>
+            <span id="fileNameDisplay" style="margin-left:10px;color:var(--text-light);font-size:13px">No file chosen</span>
             <br><br>
-            <button class="btn btn-primary" onclick="importFromExcel()"><span class="material-icons">upload_file</span> Upload Excel</button>
+            <button class="btn btn-primary" onclick="importFromExcel()"><span class="material-icons">upload_file</span> Upload &amp; Import</button>
         </div>
     </div>
 
-    <div id="adv-search-tab" class="content-section">
-        <div class="card" style="background: #e3f2fd; border: 1px solid #bbdefb;">
-            <div class="section-title" style="color:var(--primary); border-bottom-color: #bbdefb;"><span class="material-icons">manage_search</span> Multi-Criteria Search</div>
+    <!-- ═════════ ADVANCED SEARCH ═════════ -->
+    <div id="tab-search" class="content-section">
+        <div class="card card-accent-t-primary">
+            <div class="sec-title"><span class="material-icons">manage_search</span> Multi-Criteria Search</div>
             <div class="grid-3">
-                <div><label style="color:var(--primary);">Model / Machine</label><input type="text" id="advModel" placeholder="e.g. Juki"></div>
-                <div><label style="color:var(--primary);">Part Number</label><input type="text" id="advPartNo" placeholder="e.g. B1234"></div>
-                <div><label style="color:var(--primary);">Description</label><input type="text" id="advDesc" placeholder="e.g. Screw"></div>
+                <div><label>Model / Machine</label><input type="text" id="advModel" placeholder="e.g. Juki"></div>
+                <div><label>Part Number</label><input type="text" id="advPartNo" placeholder="e.g. B1234"></div>
+                <div><label>Description</label><input type="text" id="advDesc" placeholder="e.g. Screw"></div>
             </div>
-            <div style="display:flex; gap:10px; justify-content: flex-end;">
-                <button class="btn btn-outline" onclick="clearAdvancedSearch()">Clear Filters</button>
-                <button class="btn btn-primary" onclick="performAdvancedSearch()"><span class="material-icons">search</span> Find Items</button>
+            <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+                <button class="btn btn-outline" onclick="clearAdvSearch()"><span class="material-icons">clear</span> Clear</button>
+                <button class="btn btn-primary" onclick="performAdvSearch()"><span class="material-icons">search</span> Search</button>
             </div>
         </div>
-
         <div class="card">
-            <div class="section-title"><span class="material-icons">list_alt</span> Search Results <span id="advResCount" style="margin-left:auto; font-size:14px; color:var(--text-light);">0 Found</span></div>
-             <div class="table-wrapper">
+            <div class="sec-title"><span class="material-icons">list_alt</span> Results <span id="advResCount" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--text-light)">0 Found</span></div>
+            <div class="tbl-wrap">
                 <table id="advSearchTable">
-                    <thead><tr><th>Loc</th><th>Seq</th><th>Model</th><th>Part No</th><th>Description</th><th style="text-align:right;">Stock</th></tr></thead>
-                    <tbody><tr><td colspan="6" style="text-align:center; padding:20px; color:#999;">Enter criteria and click Search</td></tr></tbody>
+                    <thead><tr><th>Loc</th><th>Seq</th><th>Model</th><th>Part No</th><th>Description</th><th style="text-align:right">Stock</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="empty-state" style="padding:20px">Enter criteria and click Search</td></tr></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <div id="history-tab" class="content-section">
+    <!-- ═════════ HISTORY ═════════ -->
+    <div id="tab-history" class="content-section">
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <div class="section-title" style="margin-bottom: 0; border: none; padding-bottom: 0;"><span class="material-icons">history</span> Issue History Report</div>
-                <button class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;" onclick="exportTableToExcel('historyTable', 'Issue_History')"><span class="material-icons" style="font-size: 18px;">download</span> Download Excel</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+                <div class="sec-title" style="margin-bottom:0;border:none;padding-bottom:0"><span class="material-icons">history</span> Issue History Report</div>
+                <button class="btn btn-primary btn-sm" onclick="exportTableToExcel('historyTable','Issue_History')"><span class="material-icons">download</span> Excel</button>
             </div>
-            
-            <div style="background:#f8f9fa; padding:20px; border-radius:8px; margin-bottom:20px; display:flex; gap:20px; flex-wrap:wrap; border: 1px solid var(--border);">
-                <div style="flex:1; min-width:300px; border-right:1px solid #ddd; padding-right:20px;">
-                    <label style="color:var(--text-main); font-size:13px;"><span class="material-icons" style="font-size:16px; vertical-align:middle; color:var(--primary);">date_range</span> 1. View by Date Range</label>
-                    <div style="display:flex; gap:10px; margin-top:8px;">
+            <div style="display:flex;gap:14px;flex-wrap:wrap;background:var(--bg-body);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;border:1px solid var(--border)">
+                <div style="flex:1;min-width:250px;border-right:1px solid var(--border);padding-right:14px">
+                    <label><span class="material-icons" style="font-size:13px;vertical-align:middle;color:var(--primary)">date_range</span> Date Range</label>
+                    <div style="display:flex;gap:8px;margin-top:5px">
                         <input type="date" id="startDate" onchange="loadTransactionReport()">
                         <input type="date" id="endDate" onchange="loadTransactionReport()">
                     </div>
                 </div>
-                <div style="flex:1; min-width:300px;">
-                    <label style="color:var(--text-main); font-size:13px;"><span class="material-icons" style="font-size:16px; vertical-align:middle; color:var(--danger);">travel_explore</span> 2. Deep Search (Ignores Dates)</label>
-                    <div style="display:flex; gap:10px; margin-top:8px;">
-                        <input type="text" id="globalHistorySearch" placeholder="Find by MR No, Ref No, Emp..." onkeypress="if(event.key==='Enter') searchHistoryAllTime()">
-                        <button class="btn btn-primary" onclick="searchHistoryAllTime()"><span class="material-icons">search</span> Find</button>
+                <div style="flex:1;min-width:250px">
+                    <label><span class="material-icons" style="font-size:13px;vertical-align:middle;color:var(--danger)">travel_explore</span> Deep Search (all time)</label>
+                    <div style="display:flex;gap:8px;margin-top:5px">
+                        <input type="text" id="globalHistorySearch" placeholder="MR No, Ref, Emp ID, Part No..." onkeypress="if(event.key==='Enter')searchHistoryAllTime()">
+                        <button class="btn btn-primary" style="flex-shrink:0" onclick="searchHistoryAllTime()"><span class="material-icons">search</span></button>
                     </div>
                 </div>
             </div>
-
-            <div id="historyLoading" style="display:none; text-align:center; padding:20px; color:var(--primary); font-weight:600;">Searching Database...</div>
-            
-            <div class="dash-table-container" style="max-height: 500px;">
+            <div style="margin-bottom:10px">
+                <input type="text" id="historySearchInput" placeholder="Filter results by any field..." onkeyup="filterHistoryReport()" style="max-width:380px">
+            </div>
+            <div class="loading-row" id="historyLoading"><span class="material-icons">sync</span> Searching database...</div>
+            <div class="tbl-scroll" style="max-height:500px">
                 <table id="historyTable">
-                    <thead>
-                        <tr><th>Date</th><th>Ref No</th><th>MR No</th><th>Issued To</th><th>Item</th><th>Seq</th><th>Qty</th></tr>
-                    </thead>
+                    <thead><tr><th>Date</th><th>Ref No</th><th>MR No</th><th>Issued To</th><th>Item</th><th>Seq</th><th>Qty</th><th style="text-align:center">Edit</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
-            
-            <div id="historyNoDataMsg" class="empty-state" style="display:none;">No records found.</div>
+            <div id="historyNoDataMsg" class="empty-state" style="display:none"><span class="material-icons">search_off</span>No records found.</div>
         </div>
     </div>
 
-    <div id="stock-tab" class="content-section">
+    <!-- ═════════ STOCK ═════════ -->
+    <div id="tab-stock" class="content-section">
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <div class="section-title" style="margin-bottom: 0; border: none; padding-bottom: 0;"><span class="material-icons">inventory</span> Current Stock Report</div>
-                <button class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;" onclick="exportTableToExcel('stockTable', 'Current_Stock')"><span class="material-icons" style="font-size: 18px;">download</span> Download Excel</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+                <div class="sec-title" style="margin-bottom:0;border:none;padding-bottom:0"><span class="material-icons">inventory</span> Current Stock Report</div>
+                <button class="btn btn-primary btn-sm" onclick="exportTableToExcel('stockTable','Current_Stock')"><span class="material-icons">download</span> Excel</button>
             </div>
-
-            <div style="background:#e3f2fd; padding:15px; border-radius:8px; margin-bottom:20px; border: 1px solid #bbdefb;">
-                <label style="color:var(--primary);">Quick Filter Stock List:</label>
-                <div class="grid-2" style="margin-bottom:0; grid-template-columns: 3fr 1fr;">
-                    <input type="text" id="stockSearchInput" placeholder="Filter by Brand, Model, Part No, Seq..." onkeyup="filterStockReport()">
-                    <div style="align-self:center; text-align:right; font-weight:600; color:var(--primary);">
-                        <span id="stockCount">0</span> Items Listed
-                    </div>
+            <div style="display:flex;gap:12px;align-items:flex-end;background:var(--primary-light);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;border:1px solid var(--primary-mid);flex-wrap:wrap">
+                <div style="flex:1;min-width:200px">
+                    <label style="color:var(--primary)">Quick Filter</label>
+                    <input type="text" id="stockSearchInput" placeholder="Location, model, part no, seq..." onkeyup="filterStockReport()" style="margin-top:4px">
                 </div>
+                <div style="font-weight:800;color:var(--primary);font-size:16px;white-space:nowrap;padding-bottom:4px"><span id="stockCount">0</span> Items</div>
             </div>
-
-            <div class="dash-table-container" style="max-height: 500px;">
+            <div class="tbl-scroll" style="max-height:520px">
                 <table id="stockTable">
-                    <thead>
-                        <tr>
-                            <th onclick="sortStock('location')">Location ⬍</th>
-                            <th onclick="sortStock('sequ_num')">Seq No ⬍</th>
-                            <th onclick="sortStock('model')">Model ⬍</th>
-                            <th onclick="sortStock('part_number')">Part No ⬍</th>
-                            <th onclick="sortStock('description')">Description ⬍</th>
-                            <th onclick="sortStock('current_stock')">Stock ⬍</th>
-                        </tr>
-                    </thead>
+                    <thead><tr>
+                        <th onclick="sortStock('location')">Location <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
+                        <th onclick="sortStock('sequ_num')">Seq No <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
+                        <th onclick="sortStock('model')">Model <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
+                        <th onclick="sortStock('part_number')">Part No <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
+                        <th onclick="sortStock('description')">Description <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
+                        <th onclick="sortStock('current_stock')" style="text-align:right">Stock <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
+                        <th style="text-align:center;cursor:default">Edit</th>
+                    </tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <div id="settings-tab" class="content-section">
+    <!-- ═════════ SETTINGS ═════════ -->
+    <div id="tab-settings" class="content-section">
         <div class="card">
-            <div class="section-title"><span class="material-icons">lock</span> Factory Security</div>
-            <div style="margin-bottom: 20px;">
-                <label>Current PIN</label>
-                <div class="password-wrapper">
-                    <input type="password" id="currentPass" placeholder="Enter current PIN">
-                    <span class="material-icons password-toggle" onclick="togglePass('currentPass', this)">visibility</span>
-                </div>
+            <div class="sec-title"><span class="material-icons">lock</span> Change Factory PIN</div>
+            <div class="grid-2">
+                <div><label>Current PIN</label><div class="pw-wrap"><input type="password" id="currentPass" placeholder="Current PIN"><span class="material-icons pw-eye" onclick="togglePass('currentPass',this)">visibility</span></div></div>
+                <div><label>New PIN <small style="text-transform:none;font-weight:400">(min 10 chars)</small></label><div class="pw-wrap"><input type="password" id="newPass" placeholder="New PIN"><span class="material-icons pw-eye" onclick="togglePass('newPass',this)">visibility</span></div></div>
             </div>
-            <div style="margin-bottom: 20px;">
-                <label>New PIN (Min 10 chars)</label>
-                <div class="password-wrapper">
-                    <input type="password" id="newPass" placeholder="Enter new PIN">
-                    <span class="material-icons password-toggle" onclick="togglePass('newPass', this)">visibility</span>
-                </div>
-            </div>
-            <button class="btn btn-primary" style="margin-top: 15px;" onclick="changePassword()">Save New PIN</button>
+            <button class="btn btn-primary" style="margin-top:6px" onclick="changePassword()"><span class="material-icons">save</span> Save PIN</button>
         </div>
 
-        <div class="card" style="border-top: 5px solid var(--danger);">
-            <div class="section-title"><span class="material-icons" style="color:var(--danger);">admin_panel_settings</span> Database Management (Admin Only)</div>
-            
-            <div id="adminLock">
-                <p style="font-size:13px; color:var(--text-light); margin-bottom:15px;">Enter Administrative Password to edit or remove database records.</p>
-                <div style="display:flex; gap:10px;">
-                    <div class="password-wrapper" style="flex:1;">
-                        <input type="password" id="adminPass" placeholder="Admin Password">
-                        <span class="material-icons password-toggle" onclick="togglePass('adminPass', this)">visibility</span>
-                    </div>
-                    <button class="btn btn-danger" onclick="unlockAdmin()"><span class="material-icons">lock_open</span> Unlock</button>
+        <!-- ── USER MANAGEMENT (inside Settings) ── -->
+        <div class="card card-accent-t-primary">
+            <div class="sec-title"><span class="material-icons">group</span> User Management</div>
+
+            <div style="background:var(--bg-body);border:1px solid var(--border);border-radius:var(--radius-sm);padding:18px;margin-bottom:16px">
+                <div style="font-size:13px;font-weight:700;color:var(--text-main);margin-bottom:12px;display:flex;align-items:center;gap:6px"><span class="material-icons" style="font-size:17px;color:var(--primary)">person_add</span> Register New User</div>
+                <div class="grid-4">
+                    <div><label>Employee ID *</label><input type="text" id="newEmpId" placeholder="e.g. 10455"></div>
+                    <div><label>Full Name *</label><input type="text" id="newEmpName" placeholder="e.g. Ahmed Ali"></div>
+                    <div><label>Department</label><input type="text" id="newEmpDept" placeholder="e.g. Sewing Line 4"></div>
+                    <div><label>Role</label><select id="newEmpRole"><option value="Staff">Staff</option><option value="Supervisor">Supervisor</option><option value="Admin">Admin</option></select></div>
                 </div>
+                <button class="btn btn-primary btn-sm" onclick="addEmployee()"><span class="material-icons">person_add</span> Add User</button>
             </div>
 
-            <div id="adminPanel" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:20px;">
-                <label style="color:var(--danger);">Search Item to Edit/Delete</label>
-                <div class="search-container" style="margin-bottom:20px;">
-                    <input type="text" id="adminSearchInput" placeholder="Search Part No, Model, Seq, Desc..." onkeyup="adminLiveSearch()" autocomplete="off">
-                    <div id="adminMatchesList" class="search-list"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+                <div style="font-size:13px;font-weight:700;color:var(--text-main);display:flex;align-items:center;gap:6px">
+                    <span class="material-icons" style="font-size:17px;color:var(--primary)">group</span>
+                    Registered Users <span id="userCountBadge" style="font-size:12px;font-weight:600;color:var(--text-light)"></span>
                 </div>
+                <input type="text" id="userSearch" placeholder="Search name, ID, dept..." style="max-width:260px" onkeyup="filterUsers()">
+            </div>
+            <div id="userList">
+                <div class="empty-state"><span class="material-icons">group</span>No users registered yet.</div>
+            </div>
+        </div>
+    </div>
 
-                <div id="adminEditForm" style="display:none; background:#fff5f5; padding:20px; border-radius:8px; border:1px solid #ffcdd2;">
-                    <div style="font-weight:bold; color:var(--danger); margin-bottom:15px;">Editing Item ID: <span id="adminEditDocId" style="font-weight:normal; font-family:monospace;"></span></div>
-                    <div class="grid-3">
-                        <div><label>Location</label><input type="text" id="editLoc"></div>
-                        <div><label>Seq No</label><input type="text" id="editSeq"></div>
-                        <div><label>Model</label><input type="text" id="editModel"></div>
-                    </div>
-                    <div class="grid-2">
-                        <div><label>Part Number</label><input type="text" id="editPart"></div>
-                        <div><label>Current Stock</label><input type="number" id="editStock"></div>
-                    </div>
-                    <div style="margin-bottom:15px;">
-                        <label>Description</label><input type="text" id="editDesc">
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 20px;">
-                        <button class="btn btn-danger" onclick="deleteAdminItem()"><span class="material-icons">delete_forever</span> Delete Item</button>
-                        <div style="display:flex; gap:10px;">
-                            <button class="btn btn-outline" onclick="closeAdminForm()">Cancel</button>
-                            <button class="btn btn-success" onclick="updateAdminItem()"><span class="material-icons">save</span> Update Item</button>
-                        </div>
-                    </div>
-                </div>
+</div><!-- end #app-container -->
+
+<!-- ═══════════════ PIN GATE MODAL ═══════════════ -->
+<div id="pinGateModal" class="modal-overlay" style="display:none">
+    <div class="modal-box" style="max-width:360px" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title"><span class="material-icons">lock</span> Enter Edit PIN</div>
+            <button class="modal-close" onclick="closePinGate()"><span class="material-icons">close</span></button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:13px;color:var(--text-light);margin:0 0 14px">Enter the secure PIN to edit this record.</p>
+            <div class="pw-wrap">
+                <input type="password" id="pinGateInput" placeholder="Enter PIN" onkeypress="if(event.key==='Enter')confirmPinGate()">
+                <span class="material-icons pw-eye" onclick="togglePass('pinGateInput',this)">visibility</span>
+            </div>
+            <div id="pinGateError" style="color:var(--danger);font-size:12px;font-weight:700;margin-top:8px;display:none">Incorrect PIN. Please try again.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closePinGate()">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmPinGate()"><span class="material-icons">lock_open</span> Unlock &amp; Edit</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ STOCK EDIT MODAL ═══════════════ -->
+<div id="stockEditModal" class="modal-overlay" style="display:none" onclick="closeStockEditModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title"><span class="material-icons">edit</span> Edit / Delete Stock Item</div>
+            <button class="modal-close" onclick="closeStockEditModal()"><span class="material-icons">close</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-info">
+                <strong>Item:</strong> <span id="sePartNo" style="font-family:'JetBrains Mono',monospace;font-weight:700"></span>
+                &nbsp;·&nbsp; <span id="seDocId" style="font-size:11px;color:var(--text-light)"></span>
+            </div>
+            <div class="grid-3">
+                <div><label>Location / Bin</label><input type="text" id="seLoc"></div>
+                <div><label>Seq No</label><input type="text" id="seSeq"></div>
+                <div><label>Model</label><input type="text" id="seModel"></div>
+            </div>
+            <div class="grid-3">
+                <div style="grid-column:span 2"><label>Part Number</label><input type="text" id="sePart"></div>
+                <div><label>Current Stock</label><input type="number" id="seStock" min="0"></div>
+            </div>
+            <div class="grid-2" style="margin-bottom:0">
+                <div><label>Description</label><input type="text" id="seDesc"></div>
+                <div><label>Min Stock Threshold</label><input type="number" id="seMinStock" placeholder="e.g. 5" min="0"></div>
+            </div>
+        </div>
+        <div class="modal-footer" style="justify-content:space-between">
+            <button class="btn btn-danger" onclick="deleteStockItem()"><span class="material-icons">delete_forever</span> Delete Item</button>
+            <div style="display:flex;gap:10px">
+                <button class="btn btn-outline" onclick="closeStockEditModal()">Cancel</button>
+                <button class="btn btn-success" onclick="saveStockEdit()"><span class="material-icons">save</span> Save Changes</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- ═══════════════ EDIT TRANSACTION MODAL ═══════════════ -->
+<div id="editTxnModal" class="modal-overlay" style="display:none" onclick="closeEditModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title"><span class="material-icons">edit_note</span> Edit Transaction Record</div>
+            <button class="modal-close" onclick="closeEditModal()"><span class="material-icons">close</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-info">
+                <strong>Ref:</strong> <span id="editTxnRef" style="font-family:'JetBrains Mono',monospace"></span>
+                &nbsp;·&nbsp; <strong>Part:</strong> <span id="editTxnPart"></span>
+                &nbsp;·&nbsp; <strong>Location:</strong> <span id="editTxnLoc"></span>
+            </div>
+            <div class="grid-2">
+                <div><label>MR Number</label><input type="text" id="etMR" placeholder="e.g. MR-2026-001"></div>
+                <div><label>Date of Issue</label><input type="date" id="etDate"></div>
+            </div>
+            <div class="grid-2">
+                <div><label>Employee ID</label><input type="text" id="etEmp" placeholder="e.g. 10455"></div>
+                <div><label>Department</label><input type="text" id="etDept" placeholder="e.g. Sewing Line 4"></div>
+            </div>
+            <div>
+                <label>Quantity Issued</label>
+                <input type="number" id="etQty" min="1" placeholder="e.g. 5" oninput="checkQtyChange()">
+                <div class="qty-warning" id="qtyWarning">
+                    <span class="material-icons">warning</span>
+                    Changing the quantity will automatically adjust the inventory stock level.
+                    Old qty <strong id="qtyOld"></strong> → New qty <strong id="qtyNew"></strong>
+                    (Stock will change by <strong id="qtyDiff"></strong>).
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveEditedTransaction()"><span class="material-icons">save</span> Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ FIREBASE + LOGIC ═══════════════ -->
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, getDocs, query, where, Timestamp, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore,collection,doc,getDoc,setDoc,updateDoc,deleteDoc,addDoc,getDocs,query,orderBy,limit,Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // CONFIG
-    const firebaseConfig = {
-        apiKey: "AIzaSyDD-j_7VC20v4mNFmfdpEGk0yIErDF8Pv8",
-        authDomain: "inventory-system-5356c.firebaseapp.com",
-        projectId: "inventory-system-5356c",
-        storageBucket: "inventory-system-5356c.firebasestorage.app",
-        messagingSenderId: "691647241868",
-        appId: "1:691647241868:web:3ac4c43e1a7d11b71ba5a9",
-        measurementId: "G-D4VWJD23ND"
-    };
+const firebaseConfig = {
+    apiKey:"AIzaSyDD-j_7VC20v4mNFmfdpEGk0yIErDF8Pv8",
+    authDomain:"inventory-system-5356c.firebaseapp.com",
+    projectId:"inventory-system-5356c",
+    storageBucket:"inventory-system-5356c.firebasestorage.app",
+    messagingSenderId:"691647241868",
+    appId:"1:691647241868:web:3ac4c43e1a7d11b71ba5a9"
+};
 
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-    let db; 
+let db;
+const statusDot  = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
 
-    try {
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        statusDot.className = "dot green";
-        statusText.innerText = "Online";
-    } catch (e) {
-        statusDot.className = "dot red";
-        statusText.innerText = "Offline";
+try {
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    statusDot.className = "dot green";
+    statusText.innerText = "Online";
+} catch(e) {
+    statusDot.className = "dot red";
+    statusText.innerText = "Error";
+}
+
+window.addEventListener('online',  () => { statusDot.className="dot green"; statusText.innerText="Online"; });
+window.addEventListener('offline', () => { statusDot.className="dot red";   statusText.innerText="Offline"; });
+
+// ── STATE ─────────────────────────────────────────
+let activeFactory = "";
+let inventoryCache   = [];
+let employeeCache    = [];
+let activeItem       = null;
+let issueCart        = [];
+let currentReportData  = [];
+let currentHistoryData = [];
+let currentAdminItem   = null;
+let allUsers = [];
+
+// ── HELPERS ───────────────────────────────────────
+function fmtDate(ts) {
+    if (!ts) return '-';
+    return ts.toDate().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function getMinStock(item) {
+    if (item.min_stock != null && !isNaN(item.min_stock)) return Number(item.min_stock);
+    return (item.model||"").toUpperCase().includes("NEEDLE") ? 200 : 5;
+}
+
+function genId(partNo, desc, model, seq) {
+    let base = "";
+    if (partNo && partNo.length > 1) {
+        base = partNo.replace(/[^a-zA-Z0-9\-_]/g,'').toUpperCase();
+    } else {
+        const d = (desc||"").replace(/[^a-zA-Z0-9]/g,'').toUpperCase();
+        const m = (model||"").replace(/[^a-zA-Z0-9]/g,'').toUpperCase();
+        base = d.length < 3 ? "GEN-"+Date.now().toString(36).toUpperCase() : `GEN_${m}_${d}`.substring(0,40);
     }
+    if (seq && seq.length) base += "_SEQ"+seq.replace(/[^a-zA-Z0-9\-_]/g,'').toUpperCase();
+    return base;
+}
 
-    let activeFactory = ""; 
-    let inventoryCache = [];
-    let activeItem = null;
-    let issueCart = []; 
-    let currentReportData = [];
-    let currentHistoryData = []; 
-    let currentAdminItem = null; 
+// ══════════════════════════════════════════════════
+//  SESSION PERSISTENCE — stay logged in on refresh
+// ══════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+    // Restore dates
+    const today = new Date(), past = new Date();
+    past.setDate(today.getDate()-30);
+    document.getElementById('startDate').value = past.toISOString().split('T')[0];
+    document.getElementById('endDate').value   = today.toISOString().split('T')[0];
+    document.getElementById('issueDate').value = today.toISOString().split('T')[0];
 
-    function formatDate(timestamp) {
-        if (!timestamp) return '-';
-        return timestamp.toDate().toLocaleDateString();
-    }
-
-    // --- SMART ID GENERATION ---
-    function generateSmartId(partNo, desc, model, sequNum) {
-        let baseId = "";
-        
-        if (partNo && partNo.length > 1) {
-            baseId = partNo.replace(/[^a-zA-Z0-9-_]/g, '').toUpperCase();
-        } else {
-            const cleanDesc = (desc || "").replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-            const cleanModel = (model || "").replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-            if (cleanDesc.length < 3) {
-                 baseId = "GEN-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-            } else {
-                 baseId = `GEN_${cleanModel}_${cleanDesc}`.substring(0, 40);
-            }
-        }
-
-        if(sequNum && sequNum.length > 0) {
-            const cleanSeq = sequNum.replace(/[^a-zA-Z0-9-_]/g, '').toUpperCase();
-            return `${baseId}_SEQ${cleanSeq}`;
-        }
-
-        return baseId;
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-        const today = new Date();
-        const past = new Date();
-        past.setDate(today.getDate() - 30); // 30 days ago
-
-        document.getElementById('startDate').value = past.toISOString().split('T')[0];
-        document.getElementById('endDate').value = today.toISOString().split('T')[0];
-        document.getElementById('issueDate').value = today.toISOString().split('T')[0];
-    });
-
-    window.togglePass = (id, icon) => {
-        const input = document.getElementById(id);
-        if (input.type === "password") { input.type = "text"; icon.innerText = "visibility_off"; } 
-        else { input.type = "password"; icon.innerText = "visibility"; }
-    };
-
-    document.getElementById("loginPass").addEventListener("keypress", function(event) {
-        if (event.key === "Enter") { login(); }
-    });
-
-    window.login = async () => {
-        const factory = document.getElementById('factorySelect').value;
-        const pass = document.getElementById('loginPass').value.trim();
-        const msg = document.getElementById('loginMsg');
-        
-        if(!db) return;
-        msg.innerText = "Verifying...";
-        
+    // Check saved session
+    const saved = sessionStorage.getItem('ims_session');
+    if (saved) {
         try {
-            const credRef = doc(db, "credentials", factory);
-            const credSnap = await getDoc(credRef);
-            let validPassword = "1234"; 
-            if(credSnap.exists()) validPassword = credSnap.data().pin;
-
-            if(pass === validPassword) {
+            const { factory } = JSON.parse(saved);
+            if (factory) {
                 activeFactory = factory;
                 document.getElementById('login-screen').style.display = "none";
                 document.getElementById('app-container').style.display = "block";
                 document.getElementById('displayFactory').innerText = activeFactory;
-                refreshInventoryCache(); 
-            } else { msg.innerText = "Incorrect PIN"; }
-        } catch(e) { console.error(e); msg.innerText = "Connection Error"; }
-    };
-
-    window.changePassword = async () => {
-        const currentP = document.getElementById('currentPass').value.trim();
-        const newP = document.getElementById('newPass').value.trim();
-        if(!currentP || !newP) return alert("Please enter both current and new PINs.");
-        if(newP.length < 10) return alert("New PIN must be at least 10 characters.");
-        try {
-            const credRef = doc(db, "credentials", activeFactory);
-            const credSnap = await getDoc(credRef);
-            let validPassword = "1234";
-            if(credSnap.exists()) validPassword = credSnap.data().pin;
-            if(currentP !== validPassword) return alert("Current PIN is incorrect.");
-            await setDoc(credRef, { pin: newP });
-            alert("PIN Updated Successfully");
-            document.getElementById('currentPass').value = "";
-            document.getElementById('newPass').value = "";
-        } catch (e) { console.error(e); alert("Error updating PIN."); }
-    };
-
-    // --- ADMIN PANEL FUNCTIONS ---
-    window.unlockAdmin = () => {
-        const pass = document.getElementById('adminPass').value;
-        if(pass === 'Smt@1234') {
-            document.getElementById('adminLock').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'block';
-            document.getElementById('adminPass').value = ""; 
-        } else {
-            alert("Incorrect Administrative Password.");
-        }
-    };
-
-    window.adminLiveSearch = () => {
-        const text = document.getElementById('adminSearchInput').value.trim().toUpperCase();
-        const list = document.getElementById('adminMatchesList');
-        list.innerHTML = "";
-        list.style.display = "none";
-        
-        if(text.length < 2) return;
-
-        const matches = inventoryCache.filter(i => 
-            (i.part_number||"").includes(text) || 
-            (i.description||"").toUpperCase().includes(text) ||
-            (i.model||"").toUpperCase().includes(text) ||
-            (i.location||"").toUpperCase().includes(text) ||
-            (i.sequ_num||"").toUpperCase().includes(text)
-        );
-
-        list.style.display = "block";
-        if(matches.length === 0) list.innerHTML = "<div class='search-item' style='color:#999; cursor:default;'>No matching items</div>";
-        else matches.forEach(i => {
-            const d = document.createElement('div');
-            d.className = 'search-item';
-            const loc = i.location || "N/A";
-            const seqHtml = i.sequ_num ? `<span class="seq-tag">SEQ: ${i.sequ_num}</span>` : "";
-            d.innerHTML = `
-                <div>
-                    <div class="item-main">${i.part_number} <span class="loc-tag">${loc}</span>${seqHtml}</div>
-                    <div class="item-sub">${i.description} ${i.model ? '| ' + i.model : ''}</div>
-                </div>
-                <div style="font-weight:bold; color:var(--primary);">${i.current_stock} Qty</div>
-            `;
-            d.onclick = () => selectAdminItem(i);
-            list.appendChild(d);
-        });
-    };
-
-    window.selectAdminItem = (item) => {
-        currentAdminItem = item;
-        document.getElementById('adminMatchesList').style.display = "none";
-        document.getElementById('adminSearchInput').value = "";
-        
-        document.getElementById('adminEditForm').style.display = "block";
-        document.getElementById('adminEditDocId').innerText = item.docId;
-        
-        document.getElementById('editLoc').value = item.location || "";
-        document.getElementById('editSeq').value = item.sequ_num || "";
-        document.getElementById('editModel').value = item.model || "";
-        document.getElementById('editPart').value = item.part_number || "";
-        document.getElementById('editDesc').value = item.description || "";
-        document.getElementById('editStock').value = item.current_stock || 0;
-    };
-
-    window.closeAdminForm = () => {
-        currentAdminItem = null;
-        document.getElementById('adminEditForm').style.display = "none";
-    };
-
-    window.updateAdminItem = async () => {
-        if(!currentAdminItem) return;
-        
-        const loc = document.getElementById('editLoc').value.trim();
-        const seq = document.getElementById('editSeq').value.trim();
-        const model = document.getElementById('editModel').value.trim();
-        const part = document.getElementById('editPart').value.trim().toUpperCase();
-        const desc = document.getElementById('editDesc').value.trim();
-        const stock = parseInt(document.getElementById('editStock').value);
-
-        if(!confirm(`Are you sure you want to OVERWRITE the details for ${currentAdminItem.part_number}?`)) return;
-
-        try {
-            const ref = doc(db, "factories", activeFactory, "inventory", currentAdminItem.docId);
-            await updateDoc(ref, {
-                location: loc,
-                sequ_num: seq,
-                model: model,
-                part_number: part,
-                description: desc,
-                current_stock: stock
-            });
-            alert("Item successfully updated in database!");
-            closeAdminForm();
-            refreshInventoryCache(); 
-        } catch(e) {
-            console.error("Error updating document: ", e);
-            alert("Error updating item.");
-        }
-    };
-
-    window.deleteAdminItem = async () => {
-        if(!currentAdminItem) return;
-
-        const confirm1 = confirm(`WARNING: You are about to DELETE ${currentAdminItem.part_number} entirely from the system. This cannot be undone.`);
-        if(!confirm1) return;
-        
-        const confirm2 = confirm(`Are you absolutely sure you want to delete ${currentAdminItem.part_number} (${currentAdminItem.description})?`);
-        if(!confirm2) return;
-
-        try {
-            const ref = doc(db, "factories", activeFactory, "inventory", currentAdminItem.docId);
-            await deleteDoc(ref);
-            alert("Item successfully DELETED from database!");
-            closeAdminForm();
-            refreshInventoryCache(); 
-        } catch(e) {
-            console.error("Error deleting document: ", e);
-            alert("Error deleting item.");
-        }
-    };
-
-
-    async function refreshInventoryCache() {
-        const q = collection(db, "factories", activeFactory, "inventory");
-        const snap = await getDocs(q);
-        inventoryCache = [];
-        snap.forEach(d => inventoryCache.push({ ...d.data(), docId: d.id }));
-        
-        loadDashboard();
-        
-        if(document.getElementById('stock-tab').classList.contains('active')) {
-            loadCurrentStockReport();
-        }
+                refreshInventoryCache();
+            }
+        } catch(e) { sessionStorage.removeItem('ims_session'); }
     }
+});
 
-    // --- HELPER: GET MIN STOCK LEVEL ---
-    function getMinStockLimit(item) {
-        const model = (item.model || "").toUpperCase();
-        if(model.includes("NEEDLE")) return 200;
-        return 5;
-    }
+// ── THEME ─────────────────────────────────────────
+window.toggleTheme = () => {
+    const html = document.documentElement;
+    const icon = document.getElementById('themeIcon');
+    const dark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', dark ? 'light' : 'dark');
+    icon.innerText = dark ? 'dark_mode' : 'light_mode';
+};
 
-    // --- DASHBOARD FUNCTIONS ---
-    async function loadDashboard() {
-        const totalItems = inventoryCache.length;
-        const itemsInStock = inventoryCache.filter(item => item.current_stock > 0).length;
-        const lowStockItems = inventoryCache.filter(item => item.current_stock <= getMinStockLimit(item));
-        
-        document.getElementById('dashTotalItems').innerText = totalItems;
-        document.getElementById('dashTotalQty').innerText = itemsInStock; 
-        document.getElementById('dashLowStock').innerText = lowStockItems.length;
+window.togglePass = (id, icon) => {
+    const el = document.getElementById(id);
+    el.type = el.type==="password" ? "text" : "password";
+    icon.innerText = el.type==="password" ? "visibility" : "visibility_off";
+};
 
-        const alertTb = document.querySelector("#alertTable tbody");
-        alertTb.innerHTML = "";
-        
-        if (lowStockItems.length === 0) {
-            alertTb.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:15px; color:var(--success);">All stock levels are healthy!</td></tr>`;
-        } else {
-            lowStockItems.sort((a,b) => a.current_stock - b.current_stock);
-            lowStockItems.forEach(item => {
-                alertTb.innerHTML += `
-                    <tr class="alert-row">
-                        <td>${item.location || '-'}</td>
-                        <td>${item.sequ_num || '-'}</td>
-                        <td>${item.model || '-'}</td>
-                        <td style="font-weight:600;">${item.part_number}</td>
-                        <td>${item.description}</td>
-                        <td style="text-align:right;"><span class="alert-badge">${item.current_stock}</span></td>
-                    </tr>
-                `;
-            });
-        }
+document.getElementById("loginPass").addEventListener("keypress", e => { if(e.key==="Enter") login(); });
 
-        const histTb = document.querySelector("#dashHistoryTable tbody");
-        histTb.innerHTML = "";
-        try {
-            const q = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(50));
-            const snap = await getDocs(q);
-            
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            
-            let addedCount = 0;
-
-            if (snap.empty) {
-                histTb.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#999;">No recent activity this month</td></tr>`;
-            } else {
-                snap.forEach(d => {
-                    const t = d.data();
-                    const tDate = t.date.toDate();
-                    
-                    if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear && addedCount < 15) {
-                        histTb.innerHTML += `
-                            <tr>
-                                <td>${formatDate(t.date)}</td>
-                                <td><span style="color:var(--accent); font-weight:bold;">ISSUE</span></td>
-                                <td>${t.part_number}</td>
-                                <td style="font-weight:bold;">-${t.qty_issued}</td>
-                            </tr>
-                        `;
-                        addedCount++;
-                    }
-                });
-                
-                if (addedCount === 0) {
-                     histTb.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#999;">No recent activity this month</td></tr>`;
-                }
-            }
-        } catch(e) { console.log("Dash History Error", e); }
-    }
-
-
-    // --- ADVANCED SEARCH FUNCTIONS ---
-    window.performAdvancedSearch = () => {
-        const model = document.getElementById('advModel').value.trim().toUpperCase();
-        const partNo = document.getElementById('advPartNo').value.trim().toUpperCase();
-        const desc = document.getElementById('advDesc').value.trim().toUpperCase();
-
-        if(!model && !partNo && !desc) {
-            alert("Please enter at least one search criteria.");
-            return;
-        }
-
-        const results = inventoryCache.filter(item => {
-            let matches = true;
-            if (model && !(item.model || "").toUpperCase().includes(model)) matches = false;
-            if (partNo && !(item.part_number || "").toUpperCase().includes(partNo)) matches = false;
-            if (desc && !(item.description || "").toUpperCase().includes(desc)) matches = false;
-            return matches;
-        });
-
-        renderSearchResults(results);
-    };
-
-    window.renderSearchResults = (data) => {
-        const tb = document.querySelector("#advSearchTable tbody");
-        const countEl = document.getElementById("advResCount");
-        tb.innerHTML = "";
-        countEl.innerText = `${data.length} Found`;
-
-        if(data.length === 0) {
-            tb.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px; color:var(--danger);'>No items found matching criteria.</td></tr>";
-            return;
-        }
-
-        data.forEach(d => {
-            const isLow = d.current_stock <= getMinStockLimit(d);
-            const color = isLow ? 'var(--danger)' : 'var(--success)';
-
-            tb.innerHTML += `<tr>
-                <td>${d.location||'-'}</td>
-                <td><span class="seq-tag">${d.sequ_num||'-'}</span></td>
-                <td>${d.model||'-'}</td>
-                <td style="font-weight:600;">${d.part_number}</td>
-                <td>${d.description}</td>
-                <td style="font-weight:bold; text-align:right; color:${color}">${d.current_stock}</td>
-            </tr>`;
-        });
-    };
-
-    window.clearAdvancedSearch = () => {
-        document.getElementById('advModel').value = "";
-        document.getElementById('advPartNo').value = "";
-        document.getElementById('advDesc').value = "";
-        document.getElementById("advResCount").innerText = "0 Found";
-        document.querySelector("#advSearchTable tbody").innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px; color:#999;'>Enter criteria and click Search</td></tr>";
-    };
-
-    // --- UPDATED LIVE SEARCH (TRIPLE FIELDS) ---
-    window.liveSearch = () => {
-        const modelText = document.getElementById('searchModel').value.trim().toUpperCase();
-        const partText = document.getElementById('searchPart').value.trim().toUpperCase();
-        const seqText = document.getElementById('searchSeq').value.trim().toUpperCase();
-        
-        const list = document.getElementById('matchesList');
-        
-        // Prevent searching if all boxes are completely empty
-        if(modelText.length < 1 && partText.length < 1 && seqText.length < 1) {
-            list.innerHTML = "";
-            list.style.display = "none";
-            return;
-        }
-
-        const matches = inventoryCache.filter(i => {
-            let mMatch = true;
-            let pMatch = true;
-            let sMatch = true;
-
-            if(modelText) {
-                mMatch = (i.model || "").toUpperCase().includes(modelText);
-            }
-            if(partText) {
-                pMatch = (i.part_number || "").toUpperCase().includes(partText) || 
-                         (i.description || "").toUpperCase().includes(partText);
-            }
-            if(seqText) {
-                sMatch = (i.sequ_num || "").toUpperCase().includes(seqText);
-            }
-
-            return mMatch && pMatch && sMatch;
-        });
-
-        list.innerHTML = "";
-        list.style.display = "block";
-        
-        if(matches.length === 0) {
-            list.innerHTML = "<div class='search-item' style='color:#999; cursor:default;'>No matching items</div>";
-        } else {
-            matches.forEach(i => {
-                const d = document.createElement('div');
-                d.className = 'search-item';
-                const loc = i.location || "N/A";
-                const seqHtml = i.sequ_num ? `<span class="seq-tag">SEQ: ${i.sequ_num}</span>` : "";
-                const isLow = i.current_stock <= getMinStockLimit(i);
-                const color = isLow ? 'var(--danger)' : 'var(--success)';
-
-                d.innerHTML = `
-                    <div>
-                        <div class="item-main">${i.part_number} <span class="loc-tag">${loc}</span>${seqHtml}</div>
-                        <div class="item-sub">${i.description} ${i.model ? '| ' + i.model : ''}</div>
-                    </div>
-                    <div style="font-weight:bold; color:${color}">${i.current_stock}</div>
-                `;
-                d.onclick = () => selectItem(i);
-                list.appendChild(d);
-            });
-        }
-    };
-
-    window.selectItem = (i) => {
-        activeItem = i;
-        document.getElementById('matchesList').style.display = "none";
-        document.getElementById('selectedItemBox').style.display = "block";
-        
-        document.getElementById('resPart').innerText = `${i.part_number}`;
-        document.getElementById('resDesc').innerText = `${i.description} ${i.model ? '| ' + i.model : ''}`;
-        document.getElementById('resLoc').innerText = i.location ? `LOC: ${i.location}` : "LOC: N/A";
-        
-        const seqEl = document.getElementById('resSeq');
-        if(i.sequ_num) {
-            seqEl.innerText = `SEQ: ${i.sequ_num}`;
-            seqEl.style.display = "inline-block";
-        } else {
-            seqEl.style.display = "none";
-        }
-
-        document.getElementById('resStock').innerText = i.current_stock;
-        document.getElementById('issueQty').max = i.current_stock;
-        document.getElementById('issueQty').value = 1;
-        
-        // Clear all three search fields
-        document.getElementById('searchModel').value = "";
-        document.getElementById('searchPart').value = "";
-        document.getElementById('searchSeq').value = "";
-    };
-
-    window.resetSearch = () => {
-        document.getElementById('selectedItemBox').style.display = "none";
-        activeItem = null;
-    };
-
-    window.addToCart = () => {
-        if(!activeItem) return;
-        const qty = parseInt(document.getElementById('issueQty').value);
-        const emp = document.getElementById('issueEmp').value.trim();
-        const dept = document.getElementById('issueDept').value.trim();
-
-        if(!emp || !dept) {
-            return alert("Please enter the Assign To (Emp ID) and Department before adding to the cart.");
-        }
-
-        if(qty <= 0 || qty > activeItem.current_stock) {
-            return alert("Invalid Quantity or Insufficient Stock");
-        }
-        
-        const existingIndex = issueCart.findIndex(x => x.docId === activeItem.docId && x.emp === emp);
-        if(existingIndex > -1) {
-            return alert(`This item is already in the cart for Employee ${emp}.`);
-        }
-
-        issueCart.push({ ...activeItem, issueQty: qty, emp: emp, dept: dept });
-        renderCart();
-        resetSearch();
-    };
-
-    function renderCart() {
-        const section = document.getElementById('cartSection');
-        const tbody = document.querySelector("#cartTable tbody");
-        if(issueCart.length === 0) { section.style.display = "none"; return; }
-        section.style.display = "block";
-        tbody.innerHTML = "";
-        issueCart.forEach((item, index) => {
-            tbody.innerHTML += `<tr>
-                <td style="color:var(--primary); font-weight:600;">${item.location||'-'}</td>
-                <td>${item.part_number}</td>
-                <td>${item.description}</td>
-                <td style="color:var(--accent); font-weight:bold;">${item.emp}</td>
-                <td style="text-align:center; font-weight:bold;">${item.issueQty}</td>
-                <td style="text-align:right;"><span class="remove-link" onclick="removeFromCart(${index})">Remove</span></td>
-            </tr>`;
-        });
-    }
-
-    window.removeFromCart = (index) => {
-        issueCart.splice(index, 1);
-        renderCart();
-    };
-    
-    window.clearCart = () => {
-        issueCart = [];
-        renderCart();
-    };
-
-
-    window.submitIssue = async () => {
-        const mr = document.getElementById('issueMR').value.trim();
-        const dateInput = document.getElementById('issueDate').value;
-        
-        if(!mr) return alert("Please fill the MR Number.");
-        if(issueCart.length === 0) return alert("Cart is empty");
-        
-        let txDate = Timestamp.now();
-        if(dateInput) {
-             const d = new Date(dateInput);
-             d.setHours(12,0,0,0); 
-             txDate = Timestamp.fromDate(d);
-        }
-
-        if(!confirm(`Confirm issue of ${issueCart.length} items for MR: ${mr}?`)) return;
-
-        const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
-        let nextSeqStr = "001";
-
-        try {
-            const qRef = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(1));
-            const snapRef = await getDocs(qRef);
-            
-            if (!snapRef.empty) {
-                const lastTxn = snapRef.docs[0].data();
-                if (lastTxn.txn_ref && lastTxn.txn_ref.startsWith(`TXN-${dateStr}-`)) {
-                    const parts = lastTxn.txn_ref.split('-');
-                    if (parts.length === 3) {
-                        const lastSeq = parseInt(parts[2]);
-                        if (!isNaN(lastSeq)) {
-                            nextSeqStr = (lastSeq + 1).toString().padStart(3, '0');
-                        }
-                    }
-                }
-            }
-        } catch(e) { 
-            console.log("Could not fetch last reference, using fallback.", e); 
-            nextSeqStr = Math.floor(1000 + Math.random() * 9000).toString();
-        }
-
-        const txnRef = `TXN-${dateStr}-${nextSeqStr}`;
-
-        try {
-            for (const item of issueCart) {
-                const ref = doc(db, "factories", activeFactory, "inventory", item.docId);
-                const snap = await getDoc(ref);
-                if(snap.exists()) {
-                    let current = snap.data().current_stock;
-                    if(current >= item.issueQty) {
-                        await updateDoc(ref, { current_stock: current - item.issueQty });
-                        
-                        await addDoc(collection(db, "factories", activeFactory, "transactions"), {
-                            txn_ref: txnRef,
-                            part_number: item.part_number,
-                            description: item.description,
-                            model: item.model || "",
-                            location: item.location || "",
-                            sequ_num: item.sequ_num || "",
-                            mr_no: mr, 
-                            emp: item.emp, 
-                            dept: item.dept,
-                            qty_issued: item.issueQty,
-                            date: txDate,
-                            factory_id: activeFactory 
-                        });
-                    }
-                }
-            }
-            alert(`Items Issued Successfully!\n\nReference Number: ${txnRef}`);
-            clearCart();
-            document.getElementById('issueMR').value = "";
+// ── LOGIN ─────────────────────────────────────────
+window.login = async () => {
+    if (!db) { document.getElementById('loginMsg').innerText="Cannot connect to database."; return; }
+    const factory = document.getElementById('factorySelect').value;
+    const pass    = document.getElementById('loginPass').value.trim();
+    const msg     = document.getElementById('loginMsg');
+    if (!pass) { msg.innerText="Please enter your PIN."; return; }
+    msg.innerText = "Verifying...";
+    try {
+        const snap = await getDoc(doc(db,"credentials",factory));
+        let valid = "1234";
+        if (snap.exists()) valid = snap.data().pin;
+        if (pass === valid) {
+            activeFactory = factory;
+            // Save session so refresh keeps user logged in
+            sessionStorage.setItem('ims_session', JSON.stringify({ factory }));
+            document.getElementById('login-screen').style.display = "none";
+            document.getElementById('app-container').style.display = "block";
+            document.getElementById('displayFactory').innerText = activeFactory;
             refreshInventoryCache();
-        } catch(e) { console.error(e); alert("Error processing transaction."); }
-    };
-
-    window.receiveItem = async () => {
-        let pNoRaw = document.getElementById('newPartNo').value.trim().toUpperCase();
-        let desc = document.getElementById('newDesc').value.trim();
-        let model = document.getElementById('newModel').value.trim();
-        let sequNum = document.getElementById('newSequNum').value.trim(); 
-        const qty = parseInt(document.getElementById('newQty').value);
-
-        if(!desc && !pNoRaw) return alert("Description or Part No required.");
-        
-        const docId = generateSmartId(pNoRaw, desc, model, sequNum);
-        const finalPNo = (pNoRaw && pNoRaw.length > 0) ? pNoRaw : docId;
-
-        const ref = doc(db, "factories", activeFactory, "inventory", docId);
-        const snap = await getDoc(ref);
-        
-        if(snap.exists()) {
-            await updateDoc(ref, { current_stock: snap.data().current_stock + qty });
-            alert(`Item Exists! Stock updated. New Total: ${snap.data().current_stock + qty}`);
         } else {
-            const data = {
-                part_number: finalPNo, 
-                factory_id: activeFactory, 
-                location: document.getElementById('newLoc').value,
-                model: model,
-                sequ_num: sequNum,
-                description: desc, 
-                current_stock: qty
-            };
-            await setDoc(ref, data);
-            alert("New Item Created Successfully!");
+            msg.innerText = "Incorrect PIN. Please try again.";
         }
-        
-        document.getElementById('newPartNo').value = "";
-        document.getElementById('newDesc').value = ""; 
-        document.getElementById('newSequNum').value = "";
-        document.getElementById('newQty').value = "1";
+    } catch(e) { console.error(e); msg.innerText="Connection error."; }
+};
+
+// ── LOGOUT ────────────────────────────────────────
+window.doLogout = () => {
+    if (!confirm("Are you sure you want to log out?")) return;
+    sessionStorage.removeItem('ims_session');
+    activeFactory=""; inventoryCache=[]; employeeCache=[]; issueCart=[];
+    document.getElementById('app-container').style.display = "none";
+    document.getElementById('login-screen').style.display  = "flex";
+    document.getElementById('loginPass').value = "";
+    document.getElementById('loginMsg').innerText = "";
+};
+
+// ── CHANGE PIN ────────────────────────────────────
+window.changePassword = async () => {
+    const cur = document.getElementById('currentPass').value.trim();
+    const nw  = document.getElementById('newPass').value.trim();
+    if (!cur || !nw) return alert("Enter both current and new PINs.");
+    if (nw.length < 10) return alert("New PIN must be at least 10 characters.");
+    try {
+        const snap = await getDoc(doc(db,"credentials",activeFactory));
+        let valid = "1234";
+        if (snap.exists()) valid = snap.data().pin;
+        if (cur !== valid) return alert("Current PIN is incorrect.");
+        await setDoc(doc(db,"credentials",activeFactory),{pin:nw});
+        alert("PIN updated successfully!");
+        document.getElementById('currentPass').value="";
+        document.getElementById('newPass').value="";
+    } catch(e) { console.error(e); alert("Error updating PIN."); }
+};
+
+// ── CACHE REFRESH ─────────────────────────────────
+async function refreshInventoryCache() {
+    const snap = await getDocs(collection(db,"factories",activeFactory,"inventory"));
+    inventoryCache = [];
+    snap.forEach(d => inventoryCache.push({...d.data(), docId:d.id}));
+
+    const empSnap = await getDocs(collection(db,"factories",activeFactory,"employees"));
+    employeeCache = [];
+    empSnap.forEach(d => employeeCache.push({...d.data(), docId:d.id}));
+
+    // Populate autocomplete datalists
+    const empList  = document.getElementById('empList');
+    const deptList = document.getElementById('deptList');
+    empList.innerHTML = "";
+    deptList.innerHTML = "";
+    const depts = new Set();
+    employeeCache.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e.emp_id + (e.name ? ` — ${e.name}` : '');
+        empList.appendChild(opt);
+        if (e.department) depts.add(e.department);
+    });
+    depts.forEach(d => {
+        const opt = document.createElement('option'); opt.value = d;
+        deptList.appendChild(opt);
+    });
+
+    loadDashboard();
+    if (document.getElementById('tab-stock').classList.contains('active')) loadCurrentStockReport();
+    if (document.getElementById('tab-users').classList.contains('active')) renderUserList();
+}
+
+// ══════════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════════
+async function loadDashboard() {
+    const totalParts  = inventoryCache.length;
+    const inStock     = inventoryCache.filter(i => i.current_stock > 0).length;
+    const lowItems    = inventoryCache.filter(i => i.current_stock <= getMinStock(i));
+
+    document.getElementById('dashTotalItems').innerText = totalParts;
+    document.getElementById('dashTotalQty').innerText   = `${inStock} items in stock`;
+    document.getElementById('dashLowStock').innerText   = lowItems.length;
+    document.getElementById('dashUserCount').innerText  = employeeCache.length;
+
+    // Low stock full table
+    const alertTb = document.getElementById('alertTableBody');
+    const lowBadge = document.getElementById('lowStockCountBadge');
+    lowBadge.innerText = lowItems.length;
+    if (lowItems.length === 0) {
+        alertTb.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--success);font-weight:700">✓ All stock levels are healthy — no re-orders needed</td></tr>`;
+    } else {
+        alertTb.innerHTML = "";
+        lowItems.sort((a,b)=>a.current_stock-b.current_stock).forEach(item => {
+            const minLvl = getMinStock(item);
+            alertTb.innerHTML += `<tr style="background:var(--warning-light)">
+                <td><span class="loc-tag">${item.location||'-'}</span></td>
+                <td><span class="seq-tag">${item.sequ_num||'-'}</span></td>
+                <td>${item.model||'-'}</td>
+                <td class="mono" style="font-weight:800">${item.part_number}</td>
+                <td>${item.description}</td>
+                <td style="text-align:right;color:var(--text-light);font-weight:600">${minLvl}</td>
+                <td style="text-align:right"><span style="background:var(--danger);color:white;padding:3px 12px;border-radius:20px;font-weight:800;font-size:12px">${item.current_stock}</span></td>
+            </tr>`;
+        });
+    }
+
+    // Activity feed + issued today count
+    try {
+        const today = new Date(); today.setHours(0,0,0,0);
+        const q     = query(collection(db,"factories",activeFactory,"transactions"), orderBy("date","desc"), limit(50));
+        const snap  = await getDocs(q);
+        let issuedToday = 0;
+        const feed = document.getElementById('dashActivityFeed');
+        feed.innerHTML = "";
+        let shown = 0;
+
+        snap.forEach(d => {
+            const t     = d.data();
+            const tDate = t.date.toDate();
+            if (tDate >= today) issuedToday++;
+            if (shown < 8) {
+                feed.innerHTML += `<div class="activity-row">
+                    <div class="activity-icon" style="background:var(--danger-light);color:var(--danger)"><span class="material-icons">arrow_upward</span></div>
+                    <div class="activity-body">
+                        <div class="activity-title">${t.part_number} — ${t.description||''}</div>
+                        <div class="activity-meta"><span class="badge-ref">${t.txn_ref||'-'}</span> &nbsp;·&nbsp; MR: ${t.mr_no} &nbsp;·&nbsp; ${t.emp}</div>
+                    </div>
+                    <div class="activity-date">${fmtDate(t.date)}</div>
+                    <div class="activity-qty">-${t.qty_issued}</div>
+                </div>`;
+                shown++;
+            }
+        });
+        if (shown === 0) feed.innerHTML = `<div class="empty-state"><span class="material-icons">history</span>No recent transactions</div>`;
+        document.getElementById('dashIssuedToday').innerText = issuedToday;
+    } catch(e) { console.error("Dashboard error:",e); }
+}
+
+// ══════════════════════════════════════════════════
+//  USER MANAGEMENT
+// ══════════════════════════════════════════════════
+window.addEmployee = async () => {
+    const empId = document.getElementById('newEmpId').value.trim().toUpperCase();
+    const name  = document.getElementById('newEmpName').value.trim();
+    const dept  = document.getElementById('newEmpDept').value.trim();
+    const role  = document.getElementById('newEmpRole').value;
+    if (!empId || !name) return alert("Employee ID and Name are required.");
+    try {
+        await setDoc(doc(db,"factories",activeFactory,"employees",empId), {
+            emp_id: empId, name, department: dept, role, added: Timestamp.now()
+        });
+        alert(`User ${name} (${empId}) added successfully.`);
+        ['newEmpId','newEmpName','newEmpDept'].forEach(id => document.getElementById(id).value="");
+        refreshInventoryCache();
+    } catch(e) { console.error(e); alert("Error adding user."); }
+};
+
+window.deleteEmployee = async (empId, name) => {
+    if (!confirm(`Delete user ${name} (${empId})?`)) return;
+    try {
+        await deleteDoc(doc(db,"factories",activeFactory,"employees",empId));
+        refreshInventoryCache();
+    } catch(e) { console.error(e); alert("Error deleting user."); }
+};
+
+window.filterUsers = () => {
+    const val = document.getElementById('userSearch').value.toUpperCase();
+    const filtered = allUsers.filter(u =>
+        (u.emp_id||"").toUpperCase().includes(val) ||
+        (u.name||"").toUpperCase().includes(val)   ||
+        (u.department||"").toUpperCase().includes(val)
+    );
+    renderUserCards(filtered);
+};
+
+function renderUserList() {
+    allUsers = [...employeeCache];
+    document.getElementById('userCountBadge').innerText = `(${allUsers.length})`;
+    renderUserCards(allUsers);
+}
+
+function renderUserCards(users) {
+    const container = document.getElementById('userList');
+    if (users.length === 0) {
+        container.innerHTML = `<div class="empty-state"><span class="material-icons">group</span>No users found.</div>`;
+        return;
+    }
+    container.innerHTML = "";
+    users.forEach(u => {
+        const initials = (u.name||"?").split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
+        const roleClass = u.role === 'Admin' ? 'role-admin' : 'role-staff';
+        container.innerHTML += `<div class="user-card">
+            <div class="user-avatar">${initials}</div>
+            <div style="flex:1;min-width:0">
+                <div class="user-name">${u.name} <span class="${roleClass} role-tag">${u.role||'Staff'}</span></div>
+                <div class="user-meta">ID: <strong>${u.emp_id}</strong>${u.department ? ' &nbsp;·&nbsp; '+u.department : ''}</div>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="deleteEmployee('${u.emp_id}','${u.name.replace(/'/g,"\\'")}')">
+                <span class="material-icons" style="color:var(--danger)">person_remove</span>
+            </button>
+        </div>`;
+    });
+}
+
+// ══════════════════════════════════════════════════
+//  ISSUE — LIVE SEARCH (results panel, not dropdown)
+// ══════════════════════════════════════════════════
+window.clearSearch = () => {
+    ['searchModel','searchPart','searchSeq'].forEach(id=>document.getElementById(id).value="");
+    document.getElementById('searchResultsPanel').style.display="none";
+    document.getElementById('searchClearBtn').style.display="none";
+    document.getElementById('selectedItemBox').style.display="none";
+    activeItem=null;
+};
+
+window.liveSearch = () => {
+    const mT = document.getElementById('searchModel').value.trim().toUpperCase();
+    const pT = document.getElementById('searchPart').value.trim().toUpperCase();
+    const sT = document.getElementById('searchSeq').value.trim().toUpperCase();
+    const panel = document.getElementById('searchResultsPanel');
+    const scroll = document.getElementById('srp-scroll');
+    const clearBtn = document.getElementById('searchClearBtn');
+
+    if (!mT && !pT && !sT) {
+        panel.style.display="none";
+        clearBtn.style.display="none";
+        return;
+    }
+
+    clearBtn.style.display="inline-flex";
+
+    const matches = inventoryCache.filter(i => {
+        const mOk = !mT || (i.model||"").toUpperCase().includes(mT);
+        const pOk = !pT || (i.part_number||"").toUpperCase().includes(pT)||(i.description||"").toUpperCase().includes(pT);
+        const sOk = !sT || (i.sequ_num||"").toUpperCase().includes(sT);
+        return mOk && pOk && sOk;
+    });
+
+    panel.style.display="block";
+    document.getElementById('srp-count').innerText = `${matches.length} item${matches.length!==1?'s':''} found`;
+    scroll.innerHTML="";
+
+    if (matches.length===0) {
+        scroll.innerHTML=`<div class="empty-state" style="padding:20px"><span class="material-icons">search_off</span>No matching items</div>`;
+        return;
+    }
+
+    matches.slice(0,50).forEach(i => {
+        const isLow = i.current_stock <= getMinStock(i);
+        const qColor = isLow ? 'var(--danger)' : 'var(--success)';
+        const div = document.createElement('div');
+        div.className = 'srp-item';
+        div.innerHTML = `
+            <div class="srp-left">
+                <div class="srp-part">
+                    <span style="font-weight:800">${i.part_number}</span>
+                    <span class="loc-tag">${i.location||'N/A'}</span>
+                    ${i.sequ_num?`<span class="seq-tag">SEQ: ${i.sequ_num}</span>`:''}
+                </div>
+                <div class="srp-desc">${i.description}</div>
+                ${i.model?`<div class="srp-model">Model: ${i.model}</div>`:''}
+            </div>
+            <div class="srp-stock">
+                <div class="srp-qty" style="color:${qColor}">${i.current_stock}</div>
+                <div class="srp-qty-label">${isLow?'⚠ LOW':'in stock'}</div>
+            </div>`;
+        div.onclick = () => selectItem(i);
+        scroll.appendChild(div);
+    });
+    if (matches.length > 50) {
+        scroll.innerHTML += `<div style="text-align:center;padding:10px;font-size:12px;color:var(--text-light)">Showing 50 of ${matches.length} — narrow your search</div>`;
+    }
+};
+
+window.selectItem = (i) => {
+    activeItem=i;
+    document.getElementById('searchResultsPanel').style.display="none";
+    document.getElementById('searchClearBtn').style.display="none";
+    document.getElementById('selectedItemBox').style.display="block";
+    document.getElementById('resPart').innerText = i.part_number;
+    document.getElementById('resDesc').innerText = `${i.description}${i.model?' | '+i.model:''}`;
+    document.getElementById('resLoc').innerText  = `LOC: ${i.location||'N/A'}`;
+    const seqEl = document.getElementById('resSeq');
+    if(i.sequ_num){ seqEl.innerText=`SEQ: ${i.sequ_num}`; seqEl.style.display="inline-block"; } else seqEl.style.display="none";
+    const sEl = document.getElementById('resStock');
+    sEl.innerText=i.current_stock;
+    sEl.className="stock-num"+(i.current_stock<=getMinStock(i)?" low":"");
+    document.getElementById('issueQty').max=i.current_stock;
+    document.getElementById('issueQty').value=1;
+    ['searchModel','searchPart','searchSeq'].forEach(id=>document.getElementById(id).value="");
+};
+
+window.resetSearch = () => {
+    document.getElementById('selectedItemBox').style.display="none";
+    document.getElementById('searchResultsPanel').style.display="none";
+    document.getElementById('searchClearBtn').style.display="none";
+    activeItem=null;
+};
+
+// ── CART ──────────────────────────────────────────
+window.addToCart = () => {
+    if (!activeItem) return;
+    const qty  = parseInt(document.getElementById('issueQty').value);
+    const emp  = document.getElementById('issueEmp').value.trim();
+    const dept = document.getElementById('issueDept').value.trim();
+    if (!emp || !dept)            return alert("Enter Employee ID and Department before adding.");
+    if (isNaN(qty)||qty<=0)       return alert("Enter a valid quantity greater than 0.");
+    if (qty>activeItem.current_stock) return alert(`Insufficient stock. Available: ${activeItem.current_stock}`);
+    if (issueCart.findIndex(x=>x.docId===activeItem.docId&&x.emp===emp)>-1) return alert(`Item already in cart for employee ${emp}.`);
+    issueCart.push({...activeItem, issueQty:qty, emp, dept});
+    renderCart();
+    resetSearch();
+};
+
+function renderCart() {
+    const section = document.getElementById('cartSection');
+    const tbody   = document.querySelector("#cartTable tbody");
+    if (issueCart.length===0){ section.style.display="none"; return; }
+    section.style.display="block";
+    tbody.innerHTML="";
+
+    // Group by employee for clear visual separation
+    const grouped = {};
+    issueCart.forEach((item,idx) => {
+        if (!grouped[item.emp]) grouped[item.emp] = [];
+        grouped[item.emp].push({...item, _idx:idx});
+    });
+
+    Object.entries(grouped).forEach(([emp, items]) => {
+        const dept = items[0].dept;
+        tbody.innerHTML += `<tr><td colspan="6" style="padding:0">
+            <div class="emp-group-header"><span class="material-icons" style="font-size:15px">person</span> ${emp} &nbsp;—&nbsp; ${dept}</div>
+        </td></tr>`;
+        items.forEach(item => {
+            tbody.innerHTML += `<tr>
+                <td style="color:var(--text-light);font-size:12px;padding-left:24px">↳ ${item.emp}</td>
+                <td><span class="loc-tag">${item.location||'-'}</span></td>
+                <td class="mono" style="font-weight:700">${item.part_number}</td>
+                <td>${item.description}</td>
+                <td style="text-align:center;font-weight:800">${item.issueQty}</td>
+                <td style="text-align:right"><span class="rm-link" onclick="removeFromCart(${item._idx})">Remove</span></td>
+            </tr>`;
+        });
+    });
+}
+
+window.removeFromCart = (idx) => { issueCart.splice(idx,1); renderCart(); };
+window.clearCart = () => { issueCart=[]; renderCart(); };
+
+// ── SUBMIT ISSUE ──────────────────────────────────
+window.submitIssue = async () => {
+    const mr        = document.getElementById('issueMR').value.trim();
+    const dateInput = document.getElementById('issueDate').value;
+    if (!mr) return alert("Enter an MR Number.");
+    if (issueCart.length===0) return alert("Cart is empty.");
+
+    let txDate = Timestamp.now();
+    if (dateInput) { const d=new Date(dateInput); d.setHours(12,0,0,0); txDate=Timestamp.fromDate(d); }
+
+    // Summary by employee
+    const empGroups = {};
+    issueCart.forEach(i=>{ if(!empGroups[i.emp]) empGroups[i.emp]=0; empGroups[i.emp]+=i.issueQty; });
+    const empSummary = Object.entries(empGroups).map(([e,q])=>`${e}: ${q} items`).join('\n');
+    if (!confirm(`Issue ${issueCart.length} item(s) for MR: ${mr}\n\nBy employee:\n${empSummary}\n\nConfirm?`)) return;
+
+    const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
+    let nextSeq = "001";
+    try {
+        const qRef  = query(collection(db,"factories",activeFactory,"transactions"),orderBy("date","desc"),limit(1));
+        const sRef  = await getDocs(qRef);
+        if (!sRef.empty) {
+            const last = sRef.docs[0].data();
+            if (last.txn_ref&&last.txn_ref.startsWith(`TXN-${dateStr}-`)) {
+                const parts = last.txn_ref.split('-');
+                if (parts.length===3) { const n=parseInt(parts[2]); if(!isNaN(n)) nextSeq=(n+1).toString().padStart(3,'0'); }
+            }
+        }
+    } catch(e){ nextSeq=Math.floor(1000+Math.random()*9000).toString(); }
+
+    const txnRef = `TXN-${dateStr}-${nextSeq}`;
+    try {
+        for (const item of issueCart) {
+            const ref  = doc(db,"factories",activeFactory,"inventory",item.docId);
+            const snap = await getDoc(ref);
+            if (snap.exists()&&snap.data().current_stock>=item.issueQty) {
+                await updateDoc(ref,{current_stock: snap.data().current_stock - item.issueQty});
+                await addDoc(collection(db,"factories",activeFactory,"transactions"),{
+                    txn_ref:txnRef, part_number:item.part_number, description:item.description,
+                    model:item.model||"", location:item.location||"", sequ_num:item.sequ_num||"",
+                    mr_no:mr, emp:item.emp, dept:item.dept,
+                    qty_issued:item.issueQty, date:txDate, factory_id:activeFactory
+                });
+            }
+        }
+        printMRSlip(txnRef, mr, dateInput, issueCart);
+        alert(`Items issued!\nReference: ${txnRef}`);
+        clearCart();
+        document.getElementById('issueMR').value="";
+        refreshInventoryCache();
+    } catch(e){ console.error(e); alert("Error processing transaction."); }
+};
+
+// ── PRINT SLIP ────────────────────────────────────
+function printMRSlip(txnRef, mrNo, dateStr, items) {
+    if (!confirm("Print the Requisition Slip?")) return;
+    const dispDate = dateStr
+        ? new Date(dateStr).toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})
+        : new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
+
+    // Group rows by employee for print
+    const grouped = {};
+    items.forEach(i=>{ if(!grouped[i.emp]) grouped[i.emp]=[]; grouped[i.emp].push(i); });
+
+    let rows = "";
+    Object.entries(grouped).forEach(([emp,its])=>{
+        rows+=`<tr style="background:#f8fafc"><td colspan="5" style="font-weight:700;font-size:12px;color:#1d4ed8;padding:6px 12px">Employee: ${emp} — ${its[0].dept}</td></tr>`;
+        its.forEach(i=>{ rows+=`<tr><td>${i.part_number}</td><td>${i.description}</td><td>${i.location||'-'}</td><td>${i.sequ_num||'-'}</td><td style="text-align:center;font-weight:bold">${i.issueQty}</td></tr>`; });
+    });
+
+    document.getElementById('printSlip').innerHTML=`
+        <div class="p-header">
+            <div><h1>Material Requisition Slip</h1><div style="font-size:13px;color:#64748b;margin-top:3px">${activeFactory}</div></div>
+            <div style="text-align:right"><div style="font-size:11px;color:#64748b">Reference No.</div><div style="font-size:20px;font-weight:800;font-family:monospace;color:#1d4ed8">${txnRef}</div></div>
+        </div>
+        <div class="p-meta">
+            <div class="p-meta"><strong>MR Number</strong><span>${mrNo}</span></div>
+            <div class="p-meta"><strong>Date of Issue</strong><span>${dispDate}</span></div>
+            <div class="p-meta"><strong>Total Items</strong><span>${items.length}</span></div>
+            <div class="p-meta"><strong>Printed</strong><span>${new Date().toLocaleString('en-GB')}</span></div>
+        </div>
+        <table class="p-table">
+            <thead><tr><th>Part No</th><th>Description</th><th>Location</th><th>Seq</th><th>Qty</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <div class="p-footer">
+            <div>SMT Inventory Management — Auto-generated</div>
+            <div style="display:flex;gap:40px"><div class="sig-box">Issued By</div><div class="sig-box">Received By</div></div>
+        </div>`;
+    setTimeout(()=>window.print(),150);
+}
+
+// ── RECEIVE ITEM ──────────────────────────────────
+window.receiveItem = async () => {
+    const pNo  = document.getElementById('newPartNo').value.trim().toUpperCase();
+    const desc = document.getElementById('newDesc').value.trim();
+    const model= document.getElementById('newModel').value.trim();
+    const seq  = document.getElementById('newSequNum').value.trim();
+    const qty  = parseInt(document.getElementById('newQty').value);
+    if (!desc && !pNo) return alert("Description or Part No required.");
+    if (isNaN(qty)||qty<=0) return alert("Enter a valid quantity.");
+    const docId   = genId(pNo,desc,model,seq);
+    const finalPNo= pNo.length>0 ? pNo : docId;
+    const ref     = doc(db,"factories",activeFactory,"inventory",docId);
+    const snap    = await getDoc(ref);
+    if (snap.exists()) {
+        const newTotal = snap.data().current_stock+qty;
+        await updateDoc(ref,{current_stock:newTotal});
+        alert(`Stock updated. New total: ${newTotal}`);
+    } else {
+        await setDoc(ref,{part_number:finalPNo, factory_id:activeFactory, location:document.getElementById('newLoc').value.trim(), model, sequ_num:seq, description:desc, current_stock:qty});
+        alert("New item created!");
+    }
+    ['newPartNo','newDesc','newSequNum'].forEach(id=>document.getElementById(id).value="");
+    document.getElementById('newQty').value="1";
+    refreshInventoryCache();
+};
+
+// ── EXCEL IMPORT ──────────────────────────────────
+window.importFromExcel = () => {
+    const file = document.getElementById('excelFile').files[0];
+    if (!file) return alert("Select a file first.");
+    const r = new FileReader();
+    r.onload = async(e) => {
+        const wb  = XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+        const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        let created=0, updated=0;
+        for (const row of raw) {
+            const c={};
+            Object.keys(row).forEach(k=>c[k.toLowerCase().replace(/[\s\-_.]/g,"")]=row[k]);
+            const pNo=String(c['partno']||c['pno']||"").trim().toUpperCase();
+            const qty =parseInt(c['qty']||c['quantity']||0);
+            const loc =c['location']||c['loc']||c['bin']||"";
+            const mod =c['model']||c['machine']||"";
+            const desc=c['desc']||c['description']||"";
+            const seq =String(c['sequnum']||c['seq']||c['seqno']||"").trim();
+            if ((pNo||desc)&&qty>0) {
+                const id=genId(pNo,desc,mod,seq);
+                const ref=doc(db,"factories",activeFactory,"inventory",id);
+                const s=await getDoc(ref);
+                if(s.exists()){ await updateDoc(ref,{current_stock:s.data().current_stock+qty}); updated++; }
+                else{ await setDoc(ref,{part_number:pNo||id,factory_id:activeFactory,description:desc,model:mod,location:loc,sequ_num:seq,current_stock:qty}); created++; }
+            }
+        }
+        alert(`Import complete!\nCreated: ${created}  Updated: ${updated}`);
         refreshInventoryCache();
     };
+    r.readAsArrayBuffer(file);
+};
 
-    window.importFromExcel = () => {
-        const file = document.getElementById('excelFile').files[0];
-        if(!file) return alert("Select File");
-        const reader = new FileReader();
-        
-        reader.onload = async (e) => {
-            const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-            const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            let count = 0;
-            let updatedCount = 0;
+// ── ADVANCED SEARCH ───────────────────────────────
+window.performAdvSearch = () => {
+    const m=document.getElementById('advModel').value.trim().toUpperCase();
+    const p=document.getElementById('advPartNo').value.trim().toUpperCase();
+    const d=document.getElementById('advDesc').value.trim().toUpperCase();
+    if(!m&&!p&&!d) return alert("Enter at least one criterion.");
+    const res=inventoryCache.filter(i=>
+        (!m||(i.model||"").toUpperCase().includes(m))&&
+        (!p||(i.part_number||"").toUpperCase().includes(p))&&
+        (!d||(i.description||"").toUpperCase().includes(d))
+    );
+    renderAdvResults(res);
+};
+window.renderAdvResults = (data) => {
+    const tb=document.querySelector("#advSearchTable tbody");
+    document.getElementById("advResCount").innerText=`${data.length} Found`;
+    tb.innerHTML="";
+    if(!data.length){ tb.innerHTML="<tr><td colspan='6' class='empty-state' style='padding:20px'>No items found</td></tr>"; return; }
+    data.forEach(d=>{
+        const low=d.current_stock<=getMinStock(d);
+        tb.innerHTML+=`<tr>
+            <td><span class="loc-tag">${d.location||'-'}</span></td>
+            <td><span class="seq-tag">${d.sequ_num||'-'}</span></td>
+            <td>${d.model||'-'}</td>
+            <td class="mono" style="font-weight:700">${d.part_number}</td>
+            <td>${d.description}</td>
+            <td style="text-align:right;font-weight:800;color:${low?'var(--danger)':'var(--success)'}">${d.current_stock}</td>
+        </tr>`;
+    });
+};
+window.clearAdvSearch = () => {
+    ['advModel','advPartNo','advDesc'].forEach(id=>document.getElementById(id).value="");
+    document.getElementById("advResCount").innerText="0 Found";
+    document.querySelector("#advSearchTable tbody").innerHTML="<tr><td colspan='6' class='empty-state' style='padding:20px'>Enter criteria and click Search</td></tr>";
+};
 
-            for(let row of raw) {
-                let clean = {}; Object.keys(row).forEach(k => clean[k.toLowerCase().replace(/[\s\-_.]/g, "")] = row[k]);
-                
-                let pNo = String(clean['partno']||clean['pno']||"").trim().toUpperCase();
-                let qty = parseInt(clean['qty']||clean['quantity']||0);
-                let loc = clean['location'] || clean['loc'] || clean['bin'] || ""; 
-                let model = clean['model'] || clean['machine'] || "";
-                let desc = clean['desc'] || clean['description'] || "";
-                let sequNum = String(clean['sequnum']||clean['seq']||clean['sequence']||clean['seqno']||"").trim(); 
+// ── HISTORY REPORT ────────────────────────────────
+window.loadTransactionReport = async () => {
+    const sV=document.getElementById('startDate').value;
+    const eV=document.getElementById('endDate').value;
+    if(!sV||!eV) return;
+    document.getElementById("globalHistorySearch").value="";
+    document.getElementById("historySearchInput").value="";
+    document.getElementById('historyLoading').style.display="block";
+    document.querySelector("#historyTable tbody").innerHTML="";
+    try {
+        const snap=await getDocs(collection(db,"factories",activeFactory,"transactions"));
+        const start=new Date(sV), end=new Date(eV); end.setHours(23,59,59);
+        const docs=[];
+        // Store docId on each record so we can edit it
+        snap.forEach(d=>{ const data={...d.data(), _docId:d.id}; const dt=data.date.toDate(); if(dt>=start&&dt<=end) docs.push(data); });
+        docs.sort((a,b)=>b.date.seconds-a.date.seconds);
+        currentHistoryData=docs;
+        renderHistoryTable(docs);
+    } catch(e){ console.error(e); document.getElementById('historyLoading').style.display="none"; }
+};
 
-                if((pNo || desc) && qty > 0) {
-                    const docId = generateSmartId(pNo, desc, model, sequNum);
-                    const finalPNo = (pNo && pNo.length > 0) ? pNo : docId;
+window.searchHistoryAllTime = async () => {
+    const val=document.getElementById("globalHistorySearch").value.trim().toUpperCase();
+    if(!val){ alert("Enter a search term."); return; }
+    document.getElementById("historySearchInput").value="";
+    document.getElementById('historyLoading').style.display="block";
+    document.querySelector("#historyTable tbody").innerHTML="";
+    document.getElementById("historyNoDataMsg").style.display="none";
+    try {
+        const q=query(collection(db,"factories",activeFactory,"transactions"),orderBy("date","desc"),limit(2000));
+        const snap=await getDocs(q);
+        const docs=[];
+        snap.forEach(d=>{ const v={...d.data(), _docId:d.id};
+            if((v.txn_ref||"").toUpperCase().includes(val)||(v.mr_no||"").toUpperCase().includes(val)||(v.emp||"").toUpperCase().includes(val)||(v.part_number||"").toUpperCase().includes(val)) docs.push(v);
+        });
+        currentHistoryData=docs;
+        renderHistoryTable(docs);
+        document.getElementById('startDate').value="";
+        document.getElementById('endDate').value="";
+    } catch(e){ console.error(e); }
+};
 
-                    const ref = doc(db, "factories", activeFactory, "inventory", docId);
-                    const s = await getDoc(ref);
-                    
-                    if(s.exists()) {
-                        await updateDoc(ref, { current_stock: s.data().current_stock + qty });
-                        updatedCount++;
-                    } else {
-                        await setDoc(ref, { 
-                            part_number: finalPNo, factory_id: activeFactory, 
-                            description: desc, model: model, location: loc,
-                            sequ_num: sequNum,
-                            current_stock: qty 
-                        });
-                        count++;
-                    }
-                }
+// ── HISTORY REPORT — paginated render ────────────
+const HIST_PAGE = 100;
+
+function buildHistoryRow(v) {
+    const docId = v._docId || '';
+    const dateStr = v.date && v.date.toDate ? v.date.toDate().toISOString().split('T')[0] : '';
+    const safeRef  = encodeURIComponent(JSON.stringify({
+        _docId: docId,
+        txn_ref: v.txn_ref||'',
+        part_number: v.part_number||'',
+        location: v.location||'',
+        sequ_num: v.sequ_num||'',
+        mr_no: v.mr_no||'',
+        emp: v.emp||'',
+        dept: v.dept||'',
+        qty_issued: v.qty_issued||0,
+        dateStr
+    }));
+    return `<tr>
+        <td>${fmtDate(v.date)}</td>
+        <td><span class="badge-ref">${v.txn_ref||'-'}</span></td>
+        <td>${v.mr_no}</td>
+        <td>${v.emp}<br><small style="color:var(--text-light)">${v.dept}</small></td>
+        <td class="mono">${v.part_number}<br><small style="color:var(--text-light)">${v.description}</small></td>
+        <td>${v.sequ_num||'-'}</td>
+        <td style="font-weight:800;color:var(--danger)">${v.qty_issued}</td>
+        <td style="text-align:center">
+            <button class="btn btn-outline btn-sm" title="Edit this record"
+                onclick='requestEditPin("history",${JSON.stringify({
+                    _docId: docId,
+                    txn_ref: v.txn_ref||"",
+                    part_number: v.part_number||"",
+                    location: v.location||"",
+                    sequ_num: v.sequ_num||"",
+                    mr_no: v.mr_no||"",
+                    emp: v.emp||"",
+                    dept: v.dept||"",
+                    qty_issued: v.qty_issued||0,
+                    dateStr
+                }).replace(/'/g,"&#39;")})'>
+                <span class="material-icons" style="font-size:15px;color:var(--primary)">edit</span>
+            </button>
+        </td>
+    </tr>`;
+}
+
+window.renderHistoryTable = (docs) => {
+    document.getElementById('historyLoading').style.display="none";
+    document.getElementById("historyNoDataMsg").style.display=docs.length?"none":"block";
+    const tb=document.querySelector("#historyTable tbody");
+    tb.innerHTML="";
+    if(!docs.length) return;
+    docs.slice(0, HIST_PAGE).forEach(v=>{ tb.innerHTML+=buildHistoryRow(v); });
+    if(docs.length > HIST_PAGE) {
+        tb.innerHTML+=`<tr class="hist-load-more"><td colspan="8" style="text-align:center;padding:12px">
+            <button class="btn btn-outline btn-sm" onclick="loadMoreHistory(${HIST_PAGE})">
+                <span class="material-icons">expand_more</span> Load more (${docs.length - HIST_PAGE} remaining)
+            </button></td></tr>`;
+    }
+};
+
+window.loadMoreHistory = (offset) => {
+    const tb=document.querySelector("#historyTable tbody");
+    const lmRow = tb.querySelector('.hist-load-more');
+    if(lmRow) lmRow.remove();
+    currentHistoryData.slice(offset, offset + HIST_PAGE).forEach(v=>{ tb.innerHTML+=buildHistoryRow(v); });
+    const newOffset = offset + HIST_PAGE;
+    if(newOffset < currentHistoryData.length) {
+        tb.innerHTML+=`<tr class="hist-load-more"><td colspan="8" style="text-align:center;padding:12px">
+            <button class="btn btn-outline btn-sm" onclick="loadMoreHistory(${newOffset})">
+                <span class="material-icons">expand_more</span> Load more (${currentHistoryData.length - newOffset} remaining)
+            </button></td></tr>`;
+    }
+};
+
+window.filterHistoryReport = () => {
+    const val=(document.getElementById("historySearchInput").value||"").toUpperCase();
+    renderHistoryTable(currentHistoryData.filter(v=>
+        (v.txn_ref||"").toUpperCase().includes(val)||(v.mr_no||"").toUpperCase().includes(val)||
+        (v.emp||"").toUpperCase().includes(val)||(v.part_number||"").toUpperCase().includes(val)||
+        (v.description||"").toUpperCase().includes(val)
+    ));
+};
+
+// ── STOCK REPORT — virtual render (50 rows at a time) ─
+const STOCK_PAGE = 50;
+let stockRenderOffset = 0;
+
+window.loadCurrentStockReport = () => {
+    currentReportData=[...inventoryCache];
+    stockRenderOffset=0;
+    renderStockTable(currentReportData);
+};
+
+window.renderStockTable = (data) => {
+    const tb=document.querySelector("#stockTable tbody");
+    stockRenderOffset=0;
+    tb.innerHTML="";
+    document.getElementById("stockCount").innerText=data.length;
+    if(!data.length){ tb.innerHTML="<tr><td colspan='6' class='empty-state' style='padding:20px'>No items match</td></tr>"; return; }
+    appendStockRows(data);
+};
+
+function appendStockRows(data) {
+    const tb=document.querySelector("#stockTable tbody");
+    const existing = tb.querySelector('.load-more-row');
+    if(existing) existing.remove();
+
+    const slice = data.slice(stockRenderOffset, stockRenderOffset + STOCK_PAGE);
+    slice.forEach(d=>{
+        const low=d.current_stock<=getMinStock(d);
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+            <td><span class="loc-tag">${d.location||'-'}</span></td>
+            <td><span class="seq-tag">${d.sequ_num||'-'}</span></td>
+            <td>${d.model||'-'}</td>
+            <td class="mono" style="font-weight:700">${d.part_number}</td>
+            <td>${d.description}</td>
+            <td style="text-align:right;font-weight:800;color:${low?'var(--danger)':'var(--success)'}">${d.current_stock}</td>
+            <td style="text-align:center">
+                <button class="btn btn-outline btn-sm" title="Edit this item"
+                    onclick='requestEditPin("stock",${JSON.stringify({
+                        docId:d.docId, part_number:d.part_number, location:d.location||"",
+                        sequ_num:d.sequ_num||"", model:d.model||"", description:d.description||"",
+                        current_stock:d.current_stock, min_stock:d.min_stock??""
+                    }).replace(/'/g,"&#39;")})'>
+                    <span class="material-icons" style="font-size:15px;color:var(--primary)">edit</span>
+                </button>
+            </td>`;
+        tb.appendChild(tr);
+    });
+    stockRenderOffset += slice.length;
+    if(stockRenderOffset < data.length) {
+        const remaining = data.length - stockRenderOffset;
+        const loadTr = document.createElement('tr');
+        loadTr.className='load-more-row';
+        loadTr.innerHTML=`<td colspan="7" style="text-align:center;padding:12px">
+            <button class="btn btn-outline btn-sm" onclick="loadMoreStock()">
+                <span class="material-icons">expand_more</span> Load ${Math.min(remaining,STOCK_PAGE)} more (${remaining} remaining)
+            </button></td>`;
+        tb.appendChild(loadTr);
+    }
+}
+
+window.loadMoreStock = () => { appendStockRows(currentReportData); };
+window.filterStockReport = () => {
+    const val=document.getElementById("stockSearchInput").value.toUpperCase();
+    currentReportData=inventoryCache.filter(i=>
+        (i.part_number||"").toUpperCase().includes(val)||(i.model||"").toUpperCase().includes(val)||
+        (i.description||"").toUpperCase().includes(val)||(i.location||"").toUpperCase().includes(val)||
+        (i.sequ_num||"").toUpperCase().includes(val)
+    );
+    renderStockTable(currentReportData);
+};
+let sortDir=1;
+window.sortStock = (key) => {
+    sortDir=-sortDir;
+    currentReportData.sort((a,b)=>{
+        if(key==='current_stock') return (a[key]-b[key])*sortDir;
+        return (a[key]||"").toString().localeCompare((b[key]||"").toString())*sortDir;
+    });
+    renderStockTable(currentReportData);
+};
+
+// ══════════════════════════════════════════════════
+//  PIN GATE — protects both stock edit & history edit
+// ══════════════════════════════════════════════════
+let pinGateCallback  = null;   // function to call after PIN verified
+let pinGateContext   = null;   // "stock" or "history"
+let currentStockEdit = null;   // item being edited in stock modal
+
+// Fetch the admin PIN from Firestore and compare
+async function verifyEditPin(inputPin) {
+    try {
+        const snap = await getDoc(doc(db,"credentials","admin"));
+        if (!snap.exists()) {
+            // Fallback: also accept the factory login PIN
+            const fSnap = await getDoc(doc(db,"credentials",activeFactory));
+            const fallback = fSnap.exists() ? fSnap.data().pin : "1234";
+            return inputPin === fallback;
+        }
+        return inputPin === snap.data().pin;
+    } catch(e) {
+        console.error(e);
+        return false;
+    }
+}
+
+window.requestEditPin = (context, itemData) => {
+    pinGateContext  = context;
+    pinGateCallback = itemData;
+    document.getElementById('pinGateInput').value  = "";
+    document.getElementById('pinGateError').style.display = "none";
+    document.getElementById('pinGateModal').style.display = "flex";
+    setTimeout(()=>document.getElementById('pinGateInput').focus(), 100);
+};
+
+window.closePinGate = () => {
+    document.getElementById('pinGateModal').style.display = "none";
+    pinGateCallback = null; pinGateContext = null;
+};
+
+window.confirmPinGate = async () => {
+    const pin = document.getElementById('pinGateInput').value.trim();
+    if (!pin) return;
+    const ok = await verifyEditPin(pin);
+    if (!ok) {
+        document.getElementById('pinGateError').style.display = "block";
+        document.getElementById('pinGateInput').value = "";
+        document.getElementById('pinGateInput').focus();
+        return;
+    }
+    document.getElementById('pinGateModal').style.display = "none";
+    // Route to correct editor
+    if (pinGateContext === "stock") openStockEditModal(pinGateCallback);
+    if (pinGateContext === "history") openEditModal(pinGateCallback);
+    pinGateCallback = null; pinGateContext = null;
+};
+
+// ══════════════════════════════════════════════════
+//  STOCK EDIT MODAL
+// ══════════════════════════════════════════════════
+window.openStockEditModal = (item) => {
+    currentStockEdit = item;
+    document.getElementById('sePartNo').innerText = item.part_number;
+    document.getElementById('seDocId').innerText  = item.docId;
+    document.getElementById('seLoc').value     = item.location     || "";
+    document.getElementById('seSeq').value     = item.sequ_num     || "";
+    document.getElementById('seModel').value   = item.model        || "";
+    document.getElementById('sePart').value    = item.part_number  || "";
+    document.getElementById('seDesc').value    = item.description  || "";
+    document.getElementById('seStock').value   = item.current_stock;
+    document.getElementById('seMinStock').value= item.min_stock !== "" ? item.min_stock : "";
+    document.getElementById('stockEditModal').style.display = "flex";
+};
+
+window.closeStockEditModal = (e) => {
+    if (e && e.target !== document.getElementById('stockEditModal')) return;
+    document.getElementById('stockEditModal').style.display = "none";
+    currentStockEdit = null;
+};
+
+window.saveStockEdit = async () => {
+    if (!currentStockEdit) return;
+    const data = {
+        location:      document.getElementById('seLoc').value.trim(),
+        sequ_num:      document.getElementById('seSeq').value.trim(),
+        model:         document.getElementById('seModel').value.trim(),
+        part_number:   document.getElementById('sePart').value.trim().toUpperCase(),
+        description:   document.getElementById('seDesc').value.trim(),
+        current_stock: parseInt(document.getElementById('seStock').value)
+    };
+    const ms = document.getElementById('seMinStock').value.trim();
+    if (ms !== "") data.min_stock = parseInt(ms);
+    if (!data.part_number || isNaN(data.current_stock)) return alert("Part Number and Stock are required.");
+    if (!confirm(`Save changes to ${currentStockEdit.part_number}?`)) return;
+    try {
+        await updateDoc(doc(db,"factories",activeFactory,"inventory",currentStockEdit.docId), data);
+        alert("Item updated successfully!");
+        document.getElementById('stockEditModal').style.display = "none";
+        currentStockEdit = null;
+        refreshInventoryCache();
+    } catch(e) { console.error(e); alert("Error saving: " + e.message); }
+};
+
+window.deleteStockItem = async () => {
+    if (!currentStockEdit) return;
+    if (!confirm(`Permanently DELETE "${currentStockEdit.part_number}" from inventory?\nThis cannot be undone.`)) return;
+    if (!confirm(`Final confirmation: delete ${currentStockEdit.part_number}?`)) return;
+    try {
+        await deleteDoc(doc(db,"factories",activeFactory,"inventory",currentStockEdit.docId));
+        alert("Item deleted.");
+        document.getElementById('stockEditModal').style.display = "none";
+        currentStockEdit = null;
+        refreshInventoryCache();
+    } catch(e) { console.error(e); alert("Error deleting: " + e.message); }
+};
+
+// ══════════════════════════════════════════════════
+//  EDIT TRANSACTION MODAL
+// ══════════════════════════════════════════════════
+let currentEditTxn = null;
+
+window.openEditModal = (txnData) => {
+    currentEditTxn = txnData;
+    document.getElementById('editTxnRef').innerText  = txnData.txn_ref  || '-';
+    document.getElementById('editTxnPart').innerText = txnData.part_number || '-';
+    document.getElementById('editTxnLoc').innerText  = txnData.location || 'N/A';
+    document.getElementById('etMR').value   = txnData.mr_no    || '';
+    document.getElementById('etEmp').value  = txnData.emp      || '';
+    document.getElementById('etDept').value = txnData.dept     || '';
+    document.getElementById('etQty').value  = txnData.qty_issued || '';
+    document.getElementById('etDate').value = txnData.dateStr  || '';
+    document.getElementById('qtyWarning').style.display = 'none';
+    document.getElementById('editTxnModal').style.display = 'flex';
+};
+
+window.closeEditModal = (e) => {
+    if (e && e.target !== document.getElementById('editTxnModal')) return;
+    document.getElementById('editTxnModal').style.display = 'none';
+    currentEditTxn = null;
+};
+
+window.checkQtyChange = () => {
+    if (!currentEditTxn) return;
+    const newQty = parseInt(document.getElementById('etQty').value) || 0;
+    const oldQty = currentEditTxn.qty_issued || 0;
+    const warn   = document.getElementById('qtyWarning');
+    if (newQty !== oldQty && newQty > 0) {
+        const diff = oldQty - newQty; // positive = stock returns, negative = more deducted
+        document.getElementById('qtyOld').innerText  = oldQty;
+        document.getElementById('qtyNew').innerText  = newQty;
+        document.getElementById('qtyDiff').innerText = diff > 0 ? `+${diff} returned to stock` : `${Math.abs(diff)} more deducted`;
+        warn.style.display = 'block';
+    } else {
+        warn.style.display = 'none';
+    }
+};
+
+window.saveEditedTransaction = async () => {
+    if (!currentEditTxn || !currentEditTxn._docId) {
+        alert("Cannot edit this record — transaction ID not found. Try reloading the history.");
+        return;
+    }
+    const mr   = document.getElementById('etMR').value.trim();
+    const emp  = document.getElementById('etEmp').value.trim();
+    const dept = document.getElementById('etDept').value.trim();
+    const newQty = parseInt(document.getElementById('etQty').value);
+    const dateVal = document.getElementById('etDate').value;
+
+    if (!mr || !emp || !dept)         return alert("MR Number, Employee ID, and Department are required.");
+    if (isNaN(newQty) || newQty <= 0) return alert("Quantity must be a positive number.");
+
+    const oldQty = currentEditTxn.qty_issued || 0;
+    const qtyChanged = newQty !== oldQty;
+
+    let confirmMsg = `Save changes to transaction ${currentEditTxn.txn_ref}?`;
+    if (qtyChanged) {
+        const diff = oldQty - newQty;
+        confirmMsg += `\n\nQty change: ${oldQty} → ${newQty}\nInventory stock will be adjusted by ${diff > 0 ? '+'+diff : diff}.`;
+    }
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        // 1. Build updated transaction data
+        const updateData = { mr_no: mr, emp, dept };
+        if (dateVal) {
+            const d = new Date(dateVal); d.setHours(12,0,0,0);
+            updateData.date = Timestamp.fromDate(d);
+        }
+        if (qtyChanged) updateData.qty_issued = newQty;
+
+        await updateDoc(doc(db,"factories",activeFactory,"transactions",currentEditTxn._docId), updateData);
+
+        // 2. If qty changed, adjust inventory stock
+        if (qtyChanged) {
+            // Find inventory item by part_number + location + sequ_num from cache
+            const invItem = inventoryCache.find(i =>
+                (i.part_number||"").toUpperCase() === (currentEditTxn.part_number||"").toUpperCase() &&
+                (i.location||"")  === (currentEditTxn.location||"") &&
+                (i.sequ_num||"")  === (currentEditTxn.sequ_num||"")
+            ) || inventoryCache.find(i =>
+                (i.part_number||"").toUpperCase() === (currentEditTxn.part_number||"").toUpperCase()
+            );
+
+            if (invItem) {
+                const stockDiff = oldQty - newQty; // positive = returning stock, negative = taking more
+                const newStock  = Math.max(0, invItem.current_stock + stockDiff);
+                await updateDoc(doc(db,"factories",activeFactory,"inventory",invItem.docId), { current_stock: newStock });
+                alert(`Transaction updated!\nInventory stock for ${invItem.part_number} adjusted: ${invItem.current_stock} → ${newStock}`);
+            } else {
+                alert("Transaction updated!\n⚠ Note: Inventory item not found in cache — stock was NOT adjusted automatically. Please update it manually in Database Management.");
             }
-            alert(`Complete!\nNew Items Created: ${count}\nExisting Items Updated: ${updatedCount}`); 
-            refreshInventoryCache();
-        };
-        reader.readAsArrayBuffer(file);
-    };
-
-    // --- REPORT FUNCTIONS ---
-
-    window.loadCurrentStockReport = () => {
-        currentReportData = [...inventoryCache]; 
-        renderStockTable(currentReportData);
-    };
-
-    window.renderStockTable = (data) => {
-        const tb = document.querySelector("#stockTable tbody");
-        tb.innerHTML = "";
-        document.getElementById("stockCount").innerText = data.length;
-
-        if(data.length === 0) {
-            tb.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px;'>No matching items</td></tr>";
-            return;
-        }
-
-        data.forEach(d => {
-            const isLow = d.current_stock <= getMinStockLimit(d);
-            const color = isLow ? 'var(--danger)' : 'var(--success)';
-
-            tb.innerHTML += `<tr>
-                <td style="color:var(--accent); font-weight:600;">${d.location||'-'}</td>
-                <td><span class="seq-tag">${d.sequ_num||'-'}</span></td>
-                <td>${d.model||'-'}</td>
-                <td>${d.part_number}</td>
-                <td>${d.description}</td>
-                <td style="font-weight:bold; color:${color}">${d.current_stock}</td>
-            </tr>`;
-        });
-    }
-
-    window.filterStockReport = () => {
-        const val = document.getElementById("stockSearchInput").value.toUpperCase();
-        const filtered = inventoryCache.filter(i => 
-            (i.part_number||"").includes(val) || 
-            (i.model||"").toUpperCase().includes(val) || 
-            (i.description||"").toUpperCase().includes(val) ||
-            (i.location||"").toUpperCase().includes(val) ||
-            (i.sequ_num||"").toUpperCase().includes(val)
-        );
-        currentReportData = filtered;
-        renderStockTable(filtered);
-    }
-
-    let sortDir = 1;
-    window.sortStock = (key) => {
-        sortDir = -sortDir; 
-        currentReportData.sort((a, b) => {
-            let valA = a[key] || "";
-            let valB = b[key] || "";
-            if(key === 'current_stock') return (a[key] - b[key]) * sortDir;
-            return valA.toString().localeCompare(valB.toString()) * sortDir;
-        });
-        renderStockTable(currentReportData);
-    }
-
-    window.loadTransactionReport = async () => {
-        const sVal = document.getElementById('startDate').value;
-        const eVal = document.getElementById('endDate').value;
-        
-        if(!sVal || !eVal) return; 
-
-        document.getElementById("globalHistorySearch").value = ""; 
-
-        const loading = document.getElementById('historyLoading');
-        loading.style.display = "block";
-        document.querySelector("#historyTable tbody").innerHTML = "";
-
-        try {
-            const q = collection(db, "factories", activeFactory, "transactions");
-            const snap = await getDocs(q);
-            const docs = [];
-            const start = new Date(sVal); 
-            const end = new Date(eVal); 
-            end.setHours(23,59,59);
-
-            snap.forEach(d => {
-                const data = d.data();
-                const date = data.date.toDate();
-                if(date >= start && date <= end) docs.push(data);
-            });
-            docs.sort((a,b) => b.date.seconds - a.date.seconds);
-
-            currentHistoryData = docs; 
-            renderHistoryTable(docs);
-        } catch (e) { console.error(e); }
-    };
-
-    window.searchHistoryAllTime = async () => {
-        const val = document.getElementById("globalHistorySearch").value.trim().toUpperCase();
-        if(!val) {
-            alert("Please enter a Reference, MR, or Employee Number.");
-            return;
-        }
-
-        const loading = document.getElementById('historyLoading');
-        loading.style.display = "block";
-        document.querySelector("#historyTable tbody").innerHTML = "";
-        document.getElementById("historyNoDataMsg").style.display = "none";
-
-        try {
-            const q = query(collection(db, "factories", activeFactory, "transactions"), orderBy("date", "desc"), limit(2000));
-            const snap = await getDocs(q);
-            const docs = [];
-
-            snap.forEach(d => {
-                const v = d.data();
-                if(
-                    (v.txn_ref||"").toUpperCase().includes(val) ||
-                    (v.mr_no||"").toUpperCase().includes(val) ||
-                    (v.emp||"").toUpperCase().includes(val) ||
-                    (v.part_number||"").toUpperCase().includes(val)
-                ) {
-                    docs.push(v);
-                }
-            });
-
-            currentHistoryData = docs; 
-            renderHistoryTable(docs);
-
-            document.getElementById('startDate').value = "";
-            document.getElementById('endDate').value = "";
-            
-        } catch(e) { console.error(e); }
-    };
-
-    window.renderHistoryTable = (docs) => {
-        const loading = document.getElementById('historyLoading');
-        loading.style.display = "none";
-        document.getElementById("historyNoDataMsg").style.display = docs.length ? "none" : "block";
-
-        const tb = document.querySelector("#historyTable tbody");
-        tb.innerHTML = "";
-        
-        docs.forEach(v => {
-            tb.innerHTML += `<tr>
-                <td>${formatDate(v.date)}</td>
-                <td><span style="color:var(--primary); font-weight:700; font-size:12px;">${v.txn_ref||'-'}</span></td>
-                <td>${v.mr_no}</td>
-                <td>${v.emp}<br><small style="color:#999;">${v.dept}</small></td>
-                <td>${v.part_number}<br><small style="color:#666;">${v.description}</small></td>
-                <td>${v.sequ_num||'-'}</td>
-                <td style="font-weight:bold;">${v.qty_issued}</td>
-            </tr>`;
-        });
-    }
-
-    window.filterHistoryReport = () => {
-        const val = document.getElementById("historySearchInput").value.toUpperCase();
-        const filtered = currentHistoryData.filter(v => 
-            (v.txn_ref||"").toUpperCase().includes(val) ||
-            (v.mr_no||"").toUpperCase().includes(val) ||
-            (v.emp||"").toUpperCase().includes(val) ||
-            (v.part_number||"").toUpperCase().includes(val) ||
-            (v.description||"").toUpperCase().includes(val)
-        );
-        renderHistoryTable(filtered);
-    }
-
-    window.exportTableToExcel = (tableId, fileName) => {
-        const table = document.getElementById(tableId);
-        const dateStr = new Date().toISOString().slice(0,10);
-        XLSX.writeFile(XLSX.utils.table_to_book(table), `${fileName}_${dateStr}.xlsx`);
-    };
-
-    window.switchTab = (id, e) => {
-        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        e.currentTarget.classList.add('active');
-
-        if(id === 'stock-tab') loadCurrentStockReport();
-        if(id === 'history-tab') loadTransactionReport();
-    };
-
-    window.updateFileName = (input) => {
-        const fileNameDisplay = document.getElementById('fileNameDisplay');
-        if (input.files && input.files.length > 0) {
-            fileNameDisplay.textContent = input.files[0].name;
         } else {
-            fileNameDisplay.textContent = 'No file chosen';
+            alert("Transaction updated successfully!");
         }
-    };
+
+        // 3. Update local cache + re-render
+        const idx = currentHistoryData.findIndex(v => v._docId === currentEditTxn._docId);
+        if (idx > -1) {
+            currentHistoryData[idx] = { ...currentHistoryData[idx], mr_no:mr, emp, dept, qty_issued:newQty };
+            if (dateVal) {
+                const d = new Date(dateVal); d.setHours(12,0,0,0);
+                currentHistoryData[idx].date = { toDate: () => d, seconds: Math.floor(d.getTime()/1000) };
+            }
+        }
+
+        document.getElementById('editTxnModal').style.display = 'none';
+        currentEditTxn = null;
+        renderHistoryTable(currentHistoryData);
+        refreshInventoryCache();
+    } catch(e) {
+        console.error(e);
+        alert("Error saving changes: " + e.message);
+    }
+};
+
+// ── UTILITY ───────────────────────────────────────
+window.exportTableToExcel = (tableId, fileName) => {
+    const table=document.getElementById(tableId);
+    XLSX.writeFile(XLSX.utils.table_to_book(table),`${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+};
+
+window.switchTab = (id, e) => {
+    document.querySelectorAll('.content-section').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    e.currentTarget.classList.add('active');
+    if(id==='tab-stock')    loadCurrentStockReport();
+    if(id==='tab-history')  loadTransactionReport();
+    if(id==='tab-settings') renderUserList();
+    if(id==='tab-dashboard') loadDashboard();
+};
+
+window.switchTabDirect = (id) => {
+    document.querySelectorAll('.content-section').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['tab-dashboard','tab-issue','tab-receive','tab-search','tab-history','tab-stock','tab-settings'].indexOf(id);
+    if(idx>-1) document.querySelectorAll('.tab')[idx].classList.add('active');
+    if(id==='tab-stock')    loadCurrentStockReport();
+    if(id==='tab-history')  loadTransactionReport();
+    if(id==='tab-settings') renderUserList();
+};
+
+window.updateFileName = (input) => {
+    document.getElementById('fileNameDisplay').textContent = input.files?.length ? input.files[0].name : 'No file chosen';
+};
 </script>
 </body>
 </html>
