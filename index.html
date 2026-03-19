@@ -511,7 +511,26 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
                     <input type="text" id="issueEmp" placeholder="e.g. 10455" list="empList" autocomplete="off">
                     <datalist id="empList"></datalist>
                 </div>
-                <div><label>Department / Line</label><input type="text" id="issueDept" placeholder="e.g. Sewing Line 4" list="deptList" autocomplete="off"><datalist id="deptList"></datalist></div>
+                <div><label>Department / Line</label>
+                    <select id="issueDept">
+                        <option value="">— Select Department —</option>
+                        <option value="MEC">MEC</option>
+                        <option value="SEW">SEW</option>
+                        <option value="EMB">EMB</option>
+                        <option value="SAMPLE">SAMPLE</option>
+                        <option value="IE">IE</option>
+                        <option value="IT">IT</option>
+                        <option value="WASHING">WASHING</option>
+                        <option value="QC">QC</option>
+                        <option value="PMC">PMC</option>
+                        <option value="PROCUREMENT">PROCUREMENT</option>
+                        <option value="SHIP">SHIP</option>
+                        <option value="FTY 03">FTY 03</option>
+                        <option value="FTY 04">FTY 04</option>
+                        <option value="FTY 05">FTY 05</option>
+                        <option value="FTY 07">FTY 07</option>
+                    </select>
+                </div>
             </div>
         </div>
 
