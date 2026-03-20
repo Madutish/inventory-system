@@ -696,19 +696,62 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
 
     <!-- ═════════ STOCK ═════════ -->
     <div id="tab-stock" class="content-section">
-        <div class="card">
+        <div class="card card-accent-t-primary">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
                 <div class="sec-title" style="margin-bottom:0;border:none;padding-bottom:0"><span class="material-icons">inventory</span> Current Stock Report</div>
                 <button class="btn btn-primary btn-sm" onclick="exportTableToExcel('stockTable','Current_Stock')"><span class="material-icons">download</span> Excel</button>
             </div>
-            <div style="display:flex;gap:12px;align-items:flex-end;background:var(--primary-light);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;border:1px solid var(--primary-mid);flex-wrap:wrap">
-                <div style="flex:1;min-width:200px">
-                    <label style="color:var(--primary)">Quick Filter</label>
-                    <input type="text" id="stockSearchInput" placeholder="Location, model, part no, seq..." onkeyup="filterStockReport()" style="margin-top:4px">
+
+            <!-- Search controls -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end;flex-wrap:wrap" id="stockSearchBar">
+                <div>
+                    <label style="color:var(--primary)">Model / Machine</label>
+                    <input type="text" id="stockFModel" placeholder="e.g. JUKI" onkeypress="if(event.key==='Enter')searchStock()">
                 </div>
-                <div style="font-weight:800;color:var(--primary);font-size:16px;white-space:nowrap;padding-bottom:4px"><span id="stockCount">0</span> Items</div>
+                <div>
+                    <label style="color:var(--primary)">Part No</label>
+                    <input type="text" id="stockFPart" placeholder="e.g. 110-05204" onkeypress="if(event.key==='Enter')searchStock()">
+                </div>
+                <div>
+                    <label style="color:var(--primary)">Location</label>
+                    <input type="text" id="stockFLoc" placeholder="e.g. C-3-6" onkeypress="if(event.key==='Enter')searchStock()">
+                </div>
+                <div>
+                    <label style="color:var(--primary)">Description</label>
+                    <input type="text" id="stockFDesc" placeholder="e.g. NEEDLE" onkeypress="if(event.key==='Enter')searchStock()">
+                </div>
+                <div style="display:flex;gap:8px;padding-bottom:1px">
+                    <button class="btn btn-primary ctrl-h" onclick="searchStock()"><span class="material-icons">search</span> Search</button>
+                    <button class="btn btn-outline ctrl-h" onclick="loadAllStock()" title="Load all items"><span class="material-icons">list</span> All</button>
+                    <button class="btn btn-ghost ctrl-h" onclick="clearStockSearch()" title="Clear filters"><span class="material-icons">clear</span></button>
+                </div>
             </div>
-            <div class="tbl-scroll" style="max-height:520px">
+
+            <!-- Result count -->
+            <div id="stockResultBar" style="display:none;margin-top:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                <div style="font-size:13px;color:var(--text-light)">
+                    Showing <strong id="stockCount" style="color:var(--primary)">0</strong> items
+                    <span id="stockFilterLabel" style="margin-left:6px;font-size:12px;color:var(--text-light)"></span>
+                </div>
+                <input type="text" id="stockSearchInput" placeholder="Filter these results..." onkeyup="filterStockReport()" style="max-width:260px;font-size:13px">
+            </div>
+        </div>
+
+        <!-- Empty state shown before any search -->
+        <div id="stockEmptyState" class="card" style="text-align:center;padding:48px 24px">
+            <span class="material-icons" style="font-size:52px;color:var(--primary-mid);display:block;margin-bottom:12px">inventory_2</span>
+            <div style="font-size:16px;font-weight:700;color:var(--text-main);margin-bottom:6px">Search Stock</div>
+            <div style="font-size:13px;color:var(--text-light);margin-bottom:20px">Enter a model, part number, location or description above and click <strong>Search</strong>.<br>To view all items click <strong>All</strong>.</div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+                <button class="btn btn-outline" onclick="document.getElementById('stockFModel').value='NEEDLE';searchStock()"><span class="material-icons">search</span> Needles</button>
+                <button class="btn btn-outline" onclick="document.getElementById('stockFModel').value='JUKI';searchStock()"><span class="material-icons">search</span> JUKI Parts</button>
+                <button class="btn btn-primary" onclick="loadAllStock()"><span class="material-icons">list</span> Show All Items</button>
+            </div>
+        </div>
+
+        <!-- Table (hidden until search) -->
+        <div id="stockTableWrap" class="card" style="display:none;padding:0;overflow:hidden">
+            <div class="tbl-scroll" style="max-height:560px">
                 <table id="stockTable">
                     <thead><tr>
                         <th onclick="sortStock('location')">Location <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
@@ -1650,35 +1693,88 @@ window.filterHistoryReport = () => {
     ));
 };
 
-// ── STOCK REPORT — virtual render (50 rows at a time) ─
+// ── STOCK REPORT — search-first, lazy render ──────
 const STOCK_PAGE = 50;
 let stockRenderOffset = 0;
 
+// Tab opens → show empty state only, no auto-load
 window.loadCurrentStockReport = () => {
-    currentReportData=[...inventoryCache];
-    stockRenderOffset=0;
-    renderStockTable(currentReportData);
+    document.getElementById('stockEmptyState').style.display = 'block';
+    document.getElementById('stockTableWrap').style.display  = 'none';
+    document.getElementById('stockResultBar').style.display  = 'none';
+    document.getElementById('stockFilterLabel').innerText    = '';
+    document.getElementById('stockCount').innerText          = '0';
+    document.querySelector('#stockTable tbody').innerHTML    = '';
 };
 
+// "All" button
+window.loadAllStock = () => {
+    currentReportData = [...inventoryCache];
+    document.getElementById('stockFilterLabel').innerText = '(all items)';
+    document.getElementById('stockSearchInput').value = '';
+    showStockResults(currentReportData);
+};
+
+// Search by fields
+window.searchStock = () => {
+    const model = document.getElementById('stockFModel').value.trim().toUpperCase();
+    const part  = document.getElementById('stockFPart').value.trim().toUpperCase();
+    const loc   = document.getElementById('stockFLoc').value.trim().toUpperCase();
+    const desc  = document.getElementById('stockFDesc').value.trim().toUpperCase();
+    if (!model && !part && !loc && !desc) { loadAllStock(); return; }
+    currentReportData = inventoryCache.filter(i =>
+        (!model || (i.model||'').toUpperCase().includes(model)) &&
+        (!part  || (i.part_number||'').toUpperCase().includes(part)) &&
+        (!loc   || (i.location||'').toUpperCase().includes(loc)) &&
+        (!desc  || (i.description||'').toUpperCase().includes(desc))
+    );
+    const parts = [];
+    if (model) parts.push(`Model: "${model}"`);
+    if (part)  parts.push(`Part: "${part}"`);
+    if (loc)   parts.push(`Loc: "${loc}"`);
+    if (desc)  parts.push(`Desc: "${desc}"`);
+    document.getElementById('stockFilterLabel').innerText = parts.length ? `— ${parts.join(', ')}` : '';
+    document.getElementById('stockSearchInput').value = '';
+    showStockResults(currentReportData);
+};
+
+window.clearStockSearch = () => {
+    ['stockFModel','stockFPart','stockFLoc','stockFDesc','stockSearchInput'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('stockEmptyState').style.display = 'block';
+    document.getElementById('stockTableWrap').style.display  = 'none';
+    document.getElementById('stockResultBar').style.display  = 'none';
+    document.querySelector('#stockTable tbody').innerHTML = '';
+};
+
+function showStockResults(data) {
+    document.getElementById('stockEmptyState').style.display = 'none';
+    document.getElementById('stockTableWrap').style.display  = 'block';
+    document.getElementById('stockResultBar').style.display  = 'flex';
+    stockRenderOffset = 0;
+    renderStockTable(data);
+}
+
 window.renderStockTable = (data) => {
-    const tb=document.querySelector("#stockTable tbody");
-    stockRenderOffset=0;
-    tb.innerHTML="";
-    document.getElementById("stockCount").innerText=data.length;
-    if(!data.length){ tb.innerHTML="<tr><td colspan='6' class='empty-state' style='padding:20px'>No items match</td></tr>"; return; }
+    const tb = document.querySelector('#stockTable tbody');
+    stockRenderOffset = 0;
+    tb.innerHTML = '';
+    document.getElementById('stockCount').innerText = data.length;
+    if (!data.length) {
+        tb.innerHTML = `<tr><td colspan="7" class="empty-state" style="padding:28px"><span class="material-icons">search_off</span>No items match your search.</td></tr>`;
+        return;
+    }
     appendStockRows(data);
 };
 
 function appendStockRows(data) {
-    const tb=document.querySelector("#stockTable tbody");
+    const tb = document.querySelector('#stockTable tbody');
     const existing = tb.querySelector('.load-more-row');
-    if(existing) existing.remove();
-
+    if (existing) existing.remove();
     const slice = data.slice(stockRenderOffset, stockRenderOffset + STOCK_PAGE);
-    slice.forEach(d=>{
-        const low=d.current_stock<=getMinStock(d);
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
+    slice.forEach(d => {
+        const low = d.current_stock <= getMinStock(d);
+        const tr  = document.createElement('tr');
+        tr.innerHTML = `
             <td><span class="loc-tag">${d.location||'-'}</span></td>
             <td><span class="seq-tag">${d.sequ_num||'-'}</span></td>
             <td>${d.model||'-'}</td>
@@ -1698,36 +1794,51 @@ function appendStockRows(data) {
         tb.appendChild(tr);
     });
     stockRenderOffset += slice.length;
-    if(stockRenderOffset < data.length) {
+    if (stockRenderOffset < data.length) {
         const remaining = data.length - stockRenderOffset;
         const loadTr = document.createElement('tr');
-        loadTr.className='load-more-row';
-        loadTr.innerHTML=`<td colspan="7" style="text-align:center;padding:12px">
+        loadTr.className = 'load-more-row';
+        loadTr.innerHTML = `<td colspan="7" style="text-align:center;padding:12px">
             <button class="btn btn-outline btn-sm" onclick="loadMoreStock()">
-                <span class="material-icons">expand_more</span> Load ${Math.min(remaining,STOCK_PAGE)} more (${remaining} remaining)
+                <span class="material-icons">expand_more</span> Load ${Math.min(remaining,STOCK_PAGE)} more &nbsp;(${remaining} remaining)
             </button></td>`;
         tb.appendChild(loadTr);
     }
 }
 
 window.loadMoreStock = () => { appendStockRows(currentReportData); };
+
 window.filterStockReport = () => {
-    const val=document.getElementById("stockSearchInput").value.toUpperCase();
-    currentReportData=inventoryCache.filter(i=>
-        (i.part_number||"").toUpperCase().includes(val)||(i.model||"").toUpperCase().includes(val)||
-        (i.description||"").toUpperCase().includes(val)||(i.location||"").toUpperCase().includes(val)||
-        (i.sequ_num||"").toUpperCase().includes(val)
+    const val = document.getElementById('stockSearchInput').value.toUpperCase();
+    const filtered = currentReportData.filter(i =>
+        (i.part_number||'').toUpperCase().includes(val) ||
+        (i.model||'').toUpperCase().includes(val)       ||
+        (i.description||'').toUpperCase().includes(val) ||
+        (i.location||'').toUpperCase().includes(val)    ||
+        (i.sequ_num||'').toUpperCase().includes(val)
     );
-    renderStockTable(currentReportData);
+    stockRenderOffset = 0;
+    const tb = document.querySelector('#stockTable tbody');
+    tb.innerHTML = '';
+    document.getElementById('stockCount').innerText = filtered.length;
+    if (!filtered.length) {
+        tb.innerHTML = `<tr><td colspan="7" class="empty-state" style="padding:20px">No items match</td></tr>`;
+        return;
+    }
+    appendStockRows(filtered);
 };
-let sortDir=1;
+
+let sortDir = 1;
 window.sortStock = (key) => {
-    sortDir=-sortDir;
-    currentReportData.sort((a,b)=>{
-        if(key==='current_stock') return (a[key]-b[key])*sortDir;
-        return (a[key]||"").toString().localeCompare((b[key]||"").toString())*sortDir;
+    sortDir = -sortDir;
+    currentReportData.sort((a,b) => {
+        if (key === 'current_stock') return (a[key]-b[key]) * sortDir;
+        return (a[key]||'').toString().localeCompare((b[key]||'').toString()) * sortDir;
     });
-    renderStockTable(currentReportData);
+    stockRenderOffset = 0;
+    const tb = document.querySelector('#stockTable tbody');
+    tb.innerHTML = '';
+    appendStockRows(currentReportData);
 };
 
 // ══════════════════════════════════════════════════
