@@ -503,9 +503,9 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
             </div>
             <div class="info-box">
                 <span class="material-icons">people_alt</span>
-                <div>One MR can cover <strong>multiple employees</strong>. Set the Employee ID &amp; Department for each item before clicking "Add to Cart" — you can change them between items.</div>
+                <div>One MR can cover <strong>multiple employees</strong>. Set the Employee ID, Department &amp; Machine Number for each item before clicking "Add to Cart" — you can change them between items.</div>
             </div>
-            <div class="grid-2">
+            <div class="grid-3">
                 <div>
                     <label>Assign to — Employee ID</label>
                     <input type="text" id="issueEmp" placeholder="e.g. 10455" list="empList" autocomplete="off">
@@ -530,6 +530,10 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
                         <option value="FTY 05">FTY 05</option>
                         <option value="FTY 07">FTY 07</option>
                     </select>
+                </div>
+                <div>
+                    <label>Machine Number</label>
+                    <input type="text" id="issueMachineNo" placeholder="e.g. M-1042" autocomplete="off">
                 </div>
             </div>
         </div>
@@ -592,7 +596,7 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
             </div>
             <div class="tbl-wrap">
                 <table id="cartTable">
-                    <thead><tr><th>Emp / Dept</th><th>Location</th><th>Part No</th><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Action</th></tr></thead>
+                    <thead><tr><th>Emp / Dept</th><th>Machine No</th><th>Location</th><th>Part No</th><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Action</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -686,7 +690,7 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
             <div class="loading-row" id="historyLoading"><span class="material-icons">sync</span> Searching database...</div>
             <div class="tbl-scroll" style="max-height:500px">
                 <table id="historyTable">
-                    <thead><tr><th>Date</th><th>Ref No</th><th>MR No</th><th>Issued To</th><th>Item</th><th>Seq</th><th>Qty</th><th style="text-align:center">Edit</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Ref No</th><th>MR No</th><th>Issued To</th><th>Machine No</th><th>Item</th><th>Seq</th><th>Qty</th><th style="text-align:center">Edit</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -1334,14 +1338,15 @@ window.resetSearch = () => {
 // ── CART ──────────────────────────────────────────
 window.addToCart = () => {
     if (!activeItem) return;
-    const qty  = parseInt(document.getElementById('issueQty').value);
-    const emp  = document.getElementById('issueEmp').value.trim();
-    const dept = document.getElementById('issueDept').value.trim();
-    if (!emp || !dept)            return alert("Enter Employee ID and Department before adding.");
-    if (isNaN(qty)||qty<=0)       return alert("Enter a valid quantity greater than 0.");
+    const qty       = parseInt(document.getElementById('issueQty').value);
+    const emp       = document.getElementById('issueEmp').value.trim();
+    const dept      = document.getElementById('issueDept').value.trim();
+    const machineNo = document.getElementById('issueMachineNo').value.trim();
+    if (!emp || !dept)                return alert("Enter Employee ID and Department before adding.");
+    if (isNaN(qty)||qty<=0)           return alert("Enter a valid quantity greater than 0.");
     if (qty>activeItem.current_stock) return alert(`Insufficient stock. Available: ${activeItem.current_stock}`);
     if (issueCart.findIndex(x=>x.docId===activeItem.docId&&x.emp===emp)>-1) return alert(`Item already in cart for employee ${emp}.`);
-    issueCart.push({...activeItem, issueQty:qty, emp, dept});
+    issueCart.push({...activeItem, issueQty:qty, emp, dept, machine_no:machineNo});
     renderCart();
     resetSearch();
 };
@@ -1352,22 +1357,20 @@ function renderCart() {
     if (issueCart.length===0){ section.style.display="none"; return; }
     section.style.display="block";
     tbody.innerHTML="";
-
-    // Group by employee for clear visual separation
     const grouped = {};
     issueCart.forEach((item,idx) => {
         if (!grouped[item.emp]) grouped[item.emp] = [];
         grouped[item.emp].push({...item, _idx:idx});
     });
-
     Object.entries(grouped).forEach(([emp, items]) => {
         const dept = items[0].dept;
-        tbody.innerHTML += `<tr><td colspan="6" style="padding:0">
+        tbody.innerHTML += `<tr><td colspan="7" style="padding:0">
             <div class="emp-group-header"><span class="material-icons" style="font-size:15px">person</span> ${emp} &nbsp;—&nbsp; ${dept}</div>
         </td></tr>`;
         items.forEach(item => {
             tbody.innerHTML += `<tr>
                 <td style="color:var(--text-light);font-size:12px;padding-left:24px">↳ ${item.emp}</td>
+                <td style="font-weight:700;color:var(--primary);font-size:12px">${item.machine_no||'—'}</td>
                 <td><span class="loc-tag">${item.location||'-'}</span></td>
                 <td class="mono" style="font-weight:700">${item.part_number}</td>
                 <td>${item.description}</td>
@@ -1421,7 +1424,7 @@ window.submitIssue = async () => {
                 await addDoc(collection(db,"factories",activeFactory,"transactions"),{
                     txn_ref:txnRef, part_number:item.part_number, description:item.description,
                     model:item.model||"", location:item.location||"", sequ_num:item.sequ_num||"",
-                    mr_no:mr, emp:item.emp, dept:item.dept,
+                    mr_no:mr, emp:item.emp, dept:item.dept, machine_no:item.machine_no||"",
                     qty_issued:item.issueQty, date:txDate, factory_id:activeFactory
                 });
             }
@@ -1447,8 +1450,8 @@ function printMRSlip(txnRef, mrNo, dateStr, items) {
 
     let rows = "";
     Object.entries(grouped).forEach(([emp,its])=>{
-        rows+=`<tr style="background:#f8fafc"><td colspan="5" style="font-weight:700;font-size:12px;color:#1d4ed8;padding:6px 12px">Employee: ${emp} — ${its[0].dept}</td></tr>`;
-        its.forEach(i=>{ rows+=`<tr><td>${i.part_number}</td><td>${i.description}</td><td>${i.location||'-'}</td><td>${i.sequ_num||'-'}</td><td style="text-align:center;font-weight:bold">${i.issueQty}</td></tr>`; });
+        rows+=`<tr style="background:#f8fafc"><td colspan="6" style="font-weight:700;font-size:12px;color:#1d4ed8;padding:6px 12px">Employee: ${emp} — ${its[0].dept}</td></tr>`;
+        its.forEach(i=>{ rows+=`<tr><td>${i.part_number}</td><td>${i.description}</td><td>${i.location||'-'}</td><td>${i.sequ_num||'-'}</td><td>${i.machine_no||'—'}</td><td style="text-align:center;font-weight:bold">${i.issueQty}</td></tr>`; });
     });
 
     document.getElementById('printSlip').innerHTML=`
@@ -1463,7 +1466,7 @@ function printMRSlip(txnRef, mrNo, dateStr, items) {
             <div class="p-meta"><strong>Printed</strong><span>${new Date().toLocaleString('en-GB')}</span></div>
         </div>
         <table class="p-table">
-            <thead><tr><th>Part No</th><th>Description</th><th>Location</th><th>Seq</th><th>Qty</th></tr></thead>
+            <thead><tr><th>Part No</th><th>Description</th><th>Location</th><th>Seq</th><th>Machine No</th><th>Qty</th></tr></thead>
             <tbody>${rows}</tbody>
         </table>
         <div class="p-footer">
@@ -1632,6 +1635,7 @@ function buildHistoryRow(v) {
         <td><span class="badge-ref">${v.txn_ref||'-'}</span></td>
         <td>${v.mr_no}</td>
         <td>${v.emp}<br><small style="color:var(--text-light)">${v.dept}</small></td>
+        <td style="font-weight:700;color:var(--primary)">${v.machine_no||'—'}</td>
         <td class="mono">${v.part_number}<br><small style="color:var(--text-light)">${v.description}</small></td>
         <td>${v.sequ_num||'-'}</td>
         <td style="font-weight:800;color:var(--danger)">${v.qty_issued}</td>
@@ -1663,7 +1667,7 @@ window.renderHistoryTable = (docs) => {
     if(!docs.length) return;
     docs.slice(0, HIST_PAGE).forEach(v=>{ tb.innerHTML+=buildHistoryRow(v); });
     if(docs.length > HIST_PAGE) {
-        tb.innerHTML+=`<tr class="hist-load-more"><td colspan="8" style="text-align:center;padding:12px">
+        tb.innerHTML+=`<tr class="hist-load-more"><td colspan="9" style="text-align:center;padding:12px">
             <button class="btn btn-outline btn-sm" onclick="loadMoreHistory(${HIST_PAGE})">
                 <span class="material-icons">expand_more</span> Load more (${docs.length - HIST_PAGE} remaining)
             </button></td></tr>`;
@@ -1677,7 +1681,7 @@ window.loadMoreHistory = (offset) => {
     currentHistoryData.slice(offset, offset + HIST_PAGE).forEach(v=>{ tb.innerHTML+=buildHistoryRow(v); });
     const newOffset = offset + HIST_PAGE;
     if(newOffset < currentHistoryData.length) {
-        tb.innerHTML+=`<tr class="hist-load-more"><td colspan="8" style="text-align:center;padding:12px">
+        tb.innerHTML+=`<tr class="hist-load-more"><td colspan="9" style="text-align:center;padding:12px">
             <button class="btn btn-outline btn-sm" onclick="loadMoreHistory(${newOffset})">
                 <span class="material-icons">expand_more</span> Load more (${currentHistoryData.length - newOffset} remaining)
             </button></td></tr>`;
