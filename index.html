@@ -309,7 +309,17 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
 .p-footer{margin-top:28px;display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:12px}
 .sig-box{border-top:1px solid #0f172a;padding-top:4px;font-size:11px;color:#64748b;text-align:center;width:150px}
 
-/* ── EDIT MODAL ───────────────────────────── */
+/* ── SKELETON LOADERS ─────────────────────── */
+.skel{background:linear-gradient(90deg,var(--border) 25%,var(--bg-body) 50%,var(--border) 75%);background-size:400px 100%;animation:shimmer 1.4s infinite;border-radius:6px;display:inline-block}
+.skel-text{height:14px;width:60%;margin-bottom:8px}
+.skel-val{height:32px;width:45%;margin-bottom:6px}
+.skel-sub{height:12px;width:75%}
+.skel-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.skel-icon{width:34px;height:34px;border-radius:8px;flex-shrink:0}
+.skel-body{flex:1}
+.skel-line{height:12px;border-radius:4px;margin-bottom:6px}
+.skel-line.w80{width:80%}
+.skel-line.w50{width:50%}
 .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:4000;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
 .modal-box{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow-lg);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:fadeUp .2s ease}
 .modal-header{padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start}
@@ -399,25 +409,25 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
         <div class="stat-grid">
             <div class="stat-card blue">
                 <div class="stat-icon blue"><span class="material-icons">category</span></div>
-                <div class="stat-value" id="dashTotalItems">0</div>
+                <div class="stat-value" id="dashTotalItems"><span class="skel skel-val">&nbsp;</span></div>
                 <div class="stat-label">Unique Parts</div>
-                <div class="stat-sub" id="dashTotalQty">0 items in stock</div>
+                <div class="stat-sub" id="dashTotalQty"><span class="skel skel-sub">&nbsp;</span></div>
             </div>
             <div class="stat-card amber">
                 <div class="stat-icon amber"><span class="material-icons">warning_amber</span></div>
-                <div class="stat-value" id="dashLowStock" style="color:var(--danger)">0</div>
+                <div class="stat-value" id="dashLowStock" style="color:var(--danger)"><span class="skel skel-val">&nbsp;</span></div>
                 <div class="stat-label">Low Stock Alerts</div>
                 <div class="stat-sub">Need re-ordering</div>
             </div>
             <div class="stat-card green">
                 <div class="stat-icon green"><span class="material-icons">swap_vert</span></div>
-                <div class="stat-value" id="dashIssuedToday">0</div>
+                <div class="stat-value" id="dashIssuedToday"><span class="skel skel-val">&nbsp;</span></div>
                 <div class="stat-label">Issued Today</div>
                 <div class="stat-sub">Items issued today</div>
             </div>
             <div class="stat-card red">
                 <div class="stat-icon red"><span class="material-icons">people</span></div>
-                <div class="stat-value" id="dashUserCount">0</div>
+                <div class="stat-value" id="dashUserCount"><span class="skel skel-val">&nbsp;</span></div>
                 <div class="stat-label">Registered Users</div>
                 <div class="stat-sub">In this factory</div>
             </div>
@@ -431,7 +441,15 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
                     <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="switchTabDirect('tab-history')"><span class="material-icons">open_in_new</span></button>
                 </div>
                 <div id="dashActivityFeed" class="activity-feed">
-                    <div class="empty-state"><span class="material-icons">history</span>No activity yet</div>
+                    <!-- Skeleton rows shown while loading -->
+                    ${[1,2,3,4,5].map(()=>`
+                    <div class="skel-row">
+                        <div class="skel skel-icon"></div>
+                        <div class="skel-body">
+                            <div class="skel skel-line w80"></div>
+                            <div class="skel skel-line w50"></div>
+                        </div>
+                    </div>`).join('')}
                 </div>
             </div>
 
@@ -508,8 +526,11 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
             <div class="grid-3">
                 <div>
                     <label>Assign to — Employee ID</label>
-                    <input type="text" id="issueEmp" placeholder="e.g. 10455" list="empList" autocomplete="off">
-                    <datalist id="empList"></datalist>
+                    <div style="position:relative">
+                        <input type="text" id="issueEmp" placeholder="Select or type Emp ID..."
+                            autocomplete="off" oninput="filterEmpDropdown()" onfocus="showEmpDropdown()" onkeydown="empKeyNav(event)">
+                        <div id="empDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1.5px solid var(--primary);border-radius:var(--radius-sm);max-height:220px;overflow-y:auto;z-index:600;box-shadow:var(--shadow-lg);margin-top:3px"></div>
+                    </div>
                 </div>
                 <div><label>Department / Line</label>
                     <select id="issueDept">
@@ -1075,60 +1096,52 @@ window.changePassword = async () => {
     } catch(e) { console.error(e); alert("Error updating PIN."); }
 };
 
-// ── CACHE REFRESH ─────────────────────────────────
+// ── CACHE REFRESH — parallel fetches ──────────────
 async function refreshInventoryCache() {
-    const snap = await getDocs(collection(db,"factories",activeFactory,"inventory"));
-    inventoryCache = [];
-    snap.forEach(d => inventoryCache.push({...d.data(), docId:d.id}));
+    // Fetch inventory and employees at the SAME time instead of one after another
+    const [invSnap, empSnap] = await Promise.all([
+        getDocs(collection(db,"factories",activeFactory,"inventory")),
+        getDocs(collection(db,"factories",activeFactory,"employees"))
+    ]);
 
-    const empSnap = await getDocs(collection(db,"factories",activeFactory,"employees"));
+    inventoryCache = [];
+    invSnap.forEach(d => inventoryCache.push({...d.data(), docId:d.id}));
+
     employeeCache = [];
     empSnap.forEach(d => employeeCache.push({...d.data(), docId:d.id}));
 
-    // Populate autocomplete datalists
-    const empList  = document.getElementById('empList');
-    const deptList = document.getElementById('deptList');
-    empList.innerHTML = "";
-    deptList.innerHTML = "";
-    const depts = new Set();
-    employeeCache.forEach(e => {
-        const opt = document.createElement('option');
-        opt.value = e.emp_id + (e.name ? ` — ${e.name}` : '');
-        empList.appendChild(opt);
-        if (e.department) depts.add(e.department);
-    });
-    depts.forEach(d => {
-        const opt = document.createElement('option'); opt.value = d;
-        deptList.appendChild(opt);
-    });
+    // Populate employee combo dropdown
+    const empDropdown = document.getElementById('empDropdown');
+    if (empDropdown) buildEmpDropdownOptions();
 
     loadDashboard();
     if (document.getElementById('tab-stock').classList.contains('active')) loadCurrentStockReport();
-    if (document.getElementById('tab-users').classList.contains('active')) renderUserList();
+    if (document.getElementById('tab-settings').classList.contains('active')) renderUserList();
 }
 
 // ══════════════════════════════════════════════════
-//  DASHBOARD
+//  DASHBOARD — parallel data loading
 // ══════════════════════════════════════════════════
 async function loadDashboard() {
-    const totalParts  = inventoryCache.length;
-    const inStock     = inventoryCache.filter(i => i.current_stock > 0).length;
-    const lowItems    = inventoryCache.filter(i => i.current_stock <= getMinStock(i));
+    const totalParts = inventoryCache.length;
+    const inStock    = inventoryCache.filter(i => i.current_stock > 0).length;
+    const lowItems   = inventoryCache.filter(i => i.current_stock <= getMinStock(i));
 
+    // Update KPI cards immediately from cache (instant)
     document.getElementById('dashTotalItems').innerText = totalParts;
     document.getElementById('dashTotalQty').innerText   = `${inStock} items in stock`;
     document.getElementById('dashLowStock').innerText   = lowItems.length;
     document.getElementById('dashUserCount').innerText  = employeeCache.length;
 
-    // Low stock full table
-    const alertTb = document.getElementById('alertTableBody');
+    // Low stock full table (from cache — instant)
+    const alertTb  = document.getElementById('alertTableBody');
     const lowBadge = document.getElementById('lowStockCountBadge');
     lowBadge.innerText = lowItems.length;
     if (lowItems.length === 0) {
         alertTb.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--success);font-weight:700">✓ All stock levels are healthy — no re-orders needed</td></tr>`;
     } else {
         alertTb.innerHTML = "";
-        lowItems.sort((a,b)=>a.current_stock-b.current_stock).forEach(item => {
+        lowItems.sort((a,b) => a.current_stock - b.current_stock).forEach(item => {
             const minLvl = getMinStock(item);
             alertTb.innerHTML += `<tr style="background:var(--warning-light)">
                 <td><span class="loc-tag">${item.location||'-'}</span></td>
@@ -1142,15 +1155,15 @@ async function loadDashboard() {
         });
     }
 
-    // Activity feed + issued today count
+    // Activity feed — fetch transactions (only network call needed now)
     try {
         const today = new Date(); today.setHours(0,0,0,0);
         const q     = query(collection(db,"factories",activeFactory,"transactions"), orderBy("date","desc"), limit(50));
         const snap  = await getDocs(q);
         let issuedToday = 0;
-        const feed = document.getElementById('dashActivityFeed');
+        const feed  = document.getElementById('dashActivityFeed');
         feed.innerHTML = "";
-        let shown = 0;
+        let shown   = 0;
 
         snap.forEach(d => {
             const t     = d.data();
@@ -1239,6 +1252,73 @@ function renderUserCards(users) {
         </div>`;
     });
 }
+
+// ══════════════════════════════════════════════════
+//  EMPLOYEE COMBO DROPDOWN (select or type)
+// ══════════════════════════════════════════════════
+function buildEmpDropdownOptions() {
+    const dd = document.getElementById('empDropdown');
+    if (!dd) return;
+    dd.innerHTML = '';
+    const val = (document.getElementById('issueEmp').value||'').toUpperCase();
+    const filtered = val
+        ? employeeCache.filter(e =>
+            (e.emp_id||'').toUpperCase().includes(val) ||
+            (e.name||'').toUpperCase().includes(val))
+        : employeeCache;
+
+    if (!filtered.length) {
+        dd.innerHTML = `<div style="padding:10px 14px;font-size:12px;color:var(--text-light)">No registered employees — type manually</div>`;
+        return;
+    }
+    filtered.forEach(e => {
+        const div = document.createElement('div');
+        div.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;transition:.14s';
+        div.innerHTML = `
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:13px;flex-shrink:0">
+                ${(e.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2)}
+            </div>
+            <div style="min-width:0">
+                <div style="font-weight:700;font-size:13px;color:var(--text-main)">${e.name||''} <span style="font-weight:500;color:var(--text-light);font-size:12px">(${e.emp_id})</span></div>
+                <div style="font-size:11px;color:var(--text-light)">${e.department||''}${e.role?' · '+e.role:''}</div>
+            </div>`;
+        div.onmouseenter = () => div.style.background = 'var(--primary-light)';
+        div.onmouseleave = () => div.style.background = '';
+        div.onmousedown  = (ev) => {
+            ev.preventDefault();
+            document.getElementById('issueEmp').value = e.emp_id;
+            // Auto-fill dept if empty
+            if (e.department) {
+                const deptSel = document.getElementById('issueDept');
+                const match = [...deptSel.options].find(o => o.value === e.department);
+                if (match && !deptSel.value) deptSel.value = e.department;
+            }
+            document.getElementById('empDropdown').style.display = 'none';
+        };
+        dd.appendChild(div);
+    });
+}
+
+window.showEmpDropdown = () => {
+    buildEmpDropdownOptions();
+    document.getElementById('empDropdown').style.display = 'block';
+};
+window.filterEmpDropdown = () => {
+    buildEmpDropdownOptions();
+    document.getElementById('empDropdown').style.display = 'block';
+};
+window.empKeyNav = (e) => {
+    if (e.key === 'Escape') document.getElementById('empDropdown').style.display = 'none';
+    if (e.key === 'Enter')  document.getElementById('empDropdown').style.display = 'none';
+};
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const dd = document.getElementById('empDropdown');
+    const inp = document.getElementById('issueEmp');
+    if (dd && inp && !dd.contains(e.target) && e.target !== inp) {
+        dd.style.display = 'none';
+    }
+});
 
 // ══════════════════════════════════════════════════
 //  ISSUE — LIVE SEARCH (results panel, not dropdown)
@@ -1401,20 +1481,37 @@ window.submitIssue = async () => {
     if (!confirm(`Issue ${issueCart.length} item(s) for MR: ${mr}\n\nBy employee:\n${empSummary}\n\nConfirm?`)) return;
 
     const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
-    let nextSeq = "001";
-    try {
-        const qRef  = query(collection(db,"factories",activeFactory,"transactions"),orderBy("date","desc"),limit(1));
-        const sRef  = await getDocs(qRef);
-        if (!sRef.empty) {
-            const last = sRef.docs[0].data();
-            if (last.txn_ref&&last.txn_ref.startsWith(`TXN-${dateStr}-`)) {
-                const parts = last.txn_ref.split('-');
-                if (parts.length===3) { const n=parseInt(parts[2]); if(!isNaN(n)) nextSeq=(n+1).toString().padStart(3,'0'); }
-            }
-        }
-    } catch(e){ nextSeq=Math.floor(1000+Math.random()*9000).toString(); }
 
-    const txnRef = `TXN-${dateStr}-${nextSeq}`;
+    // ── CONTINUOUS global sequence counter (never resets daily) ──
+    let nextSeq = 1;
+    try {
+        const counterRef = doc(db,"factories",activeFactory,"meta","txn_counter");
+        const counterSnap = await getDoc(counterRef);
+        if (counterSnap.exists()) {
+            nextSeq = (counterSnap.data().last_seq || 0) + 1;
+        } else {
+            // First time: scan existing transactions to find the highest seq used
+            const qRef = query(collection(db,"factories",activeFactory,"transactions"), orderBy("date","desc"), limit(200));
+            const sRef = await getDocs(qRef);
+            let maxFound = 0;
+            sRef.forEach(d => {
+                const ref = d.data().txn_ref || "";
+                const parts = ref.split('-');
+                if (parts.length === 3) {
+                    const n = parseInt(parts[2]);
+                    if (!isNaN(n) && n > maxFound) maxFound = n;
+                }
+            });
+            nextSeq = maxFound + 1;
+        }
+        await setDoc(counterRef, { last_seq: nextSeq });
+    } catch(e) {
+        console.error("Counter error:", e);
+        nextSeq = Math.floor(1000 + Math.random() * 9000);
+    }
+
+    const txnRef = `TXN-${dateStr}-${nextSeq.toString().padStart(3,'0')}`;
+
     try {
         for (const item of issueCart) {
             const ref  = doc(db,"factories",activeFactory,"inventory",item.docId);
@@ -1429,8 +1526,8 @@ window.submitIssue = async () => {
                 });
             }
         }
-        printMRSlip(txnRef, mr, dateInput, issueCart);
-        alert(`Items issued!\nReference: ${txnRef}`);
+        // No print prompt — just confirm with ref number
+        alert(`✅ Items issued successfully!\n\nReference No: ${txnRef}\nMR: ${mr}\nItems: ${issueCart.length}`);
         clearCart();
         document.getElementById('issueMR').value="";
         refreshInventoryCache();
