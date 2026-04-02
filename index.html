@@ -442,14 +442,41 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
                 </div>
                 <div id="dashActivityFeed" class="activity-feed">
                     <!-- Skeleton rows shown while loading -->
-                    ${[1,2,3,4,5].map(()=>`
                     <div class="skel-row">
                         <div class="skel skel-icon"></div>
                         <div class="skel-body">
                             <div class="skel skel-line w80"></div>
                             <div class="skel skel-line w50"></div>
                         </div>
-                    </div>`).join('')}
+                    </div>
+                    <div class="skel-row">
+                        <div class="skel skel-icon"></div>
+                        <div class="skel-body">
+                            <div class="skel skel-line w80"></div>
+                            <div class="skel skel-line w50"></div>
+                        </div>
+                    </div>
+                    <div class="skel-row">
+                        <div class="skel skel-icon"></div>
+                        <div class="skel-body">
+                            <div class="skel skel-line w80"></div>
+                            <div class="skel skel-line w50"></div>
+                        </div>
+                    </div>
+                    <div class="skel-row">
+                        <div class="skel skel-icon"></div>
+                        <div class="skel-body">
+                            <div class="skel skel-line w80"></div>
+                            <div class="skel skel-line w50"></div>
+                        </div>
+                    </div>
+                    <div class="skel-row">
+                        <div class="skel skel-icon"></div>
+                        <div class="skel-body">
+                            <div class="skel skel-line w80"></div>
+                            <div class="skel skel-line w50"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -661,9 +688,10 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
     <div id="tab-search" class="content-section">
         <div class="card card-accent-t-primary">
             <div class="sec-title"><span class="material-icons">manage_search</span> Multi-Criteria Search</div>
-            <div class="grid-3">
+            <div class="grid-4">
                 <div><label>Model / Machine</label><input type="text" id="advModel" placeholder="e.g. Juki"></div>
                 <div><label>Part Number</label><input type="text" id="advPartNo" placeholder="e.g. B1234"></div>
+                <div><label>Seq No</label><input type="text" id="advSeq" placeholder="e.g. 001"></div>
                 <div><label>Description</label><input type="text" id="advDesc" placeholder="e.g. Screw"></div>
             </div>
             <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
@@ -728,7 +756,7 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
             </div>
 
             <!-- Search controls -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end;flex-wrap:wrap" id="stockSearchBar">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end;flex-wrap:wrap" id="stockSearchBar">
                 <div>
                     <label style="color:var(--primary)">Model / Machine</label>
                     <input type="text" id="stockFModel" placeholder="e.g. JUKI" onkeypress="if(event.key==='Enter')searchStock()">
@@ -740,6 +768,10 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
                 <div>
                     <label style="color:var(--primary)">Location</label>
                     <input type="text" id="stockFLoc" placeholder="e.g. C-3-6" onkeypress="if(event.key==='Enter')searchStock()">
+                </div>
+                <div>
+                    <label style="color:var(--primary)">Seq No</label>
+                    <input type="text" id="stockFSeq" placeholder="e.g. 001" onkeypress="if(event.key==='Enter')searchStock()">
                 </div>
                 <div>
                     <label style="color:var(--primary)">Description</label>
@@ -785,6 +817,7 @@ tr:hover td{background:var(--bg-body);transition:background .1s}
                         <th onclick="sortStock('part_number')">Part No <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
                         <th onclick="sortStock('description')">Description <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
                         <th onclick="sortStock('current_stock')" style="text-align:right">Stock <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
+                        <th onclick="sortStock('last_added_date')">Add Date <span class="material-icons" style="font-size:13px;vertical-align:middle;opacity:.5">unfold_more</span></th>
                         <th style="text-align:center;cursor:default">Edit</th>
                     </tr></thead>
                     <tbody></tbody>
@@ -977,6 +1010,22 @@ let allUsers = [];
 function fmtDate(ts) {
     if (!ts) return '-';
     return ts.toDate().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+function fmtAnyDate(val) {
+    if (!val) return '-';
+    try {
+        if (typeof val?.toDate === 'function') {
+            return val.toDate().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+        }
+        const dt = val instanceof Date ? val : new Date(val);
+        if (isNaN(dt.getTime())) return '-';
+        return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    } catch (_) {
+        return '-';
+    }
+}
+function getStockAddDate(item) {
+    return item?.last_added_date || item?.added_date || null;
 }
 
 function getMinStock(item) {
@@ -1588,10 +1637,10 @@ window.receiveItem = async () => {
     const snap    = await getDoc(ref);
     if (snap.exists()) {
         const newTotal = snap.data().current_stock+qty;
-        await updateDoc(ref,{current_stock:newTotal});
+        await updateDoc(ref,{current_stock:newTotal, last_added_date: Timestamp.now()});
         alert(`Stock updated. New total: ${newTotal}`);
     } else {
-        await setDoc(ref,{part_number:finalPNo, factory_id:activeFactory, location:document.getElementById('newLoc').value.trim(), model, sequ_num:seq, description:desc, current_stock:qty});
+        await setDoc(ref,{part_number:finalPNo, factory_id:activeFactory, location:document.getElementById('newLoc').value.trim(), model, sequ_num:seq, description:desc, current_stock:qty, added_date: Timestamp.now(), last_added_date: Timestamp.now()});
         alert("New item created!");
     }
     ['newPartNo','newDesc','newSequNum'].forEach(id=>document.getElementById(id).value="");
@@ -1621,8 +1670,8 @@ window.importFromExcel = () => {
                 const id=genId(pNo,desc,mod,seq);
                 const ref=doc(db,"factories",activeFactory,"inventory",id);
                 const s=await getDoc(ref);
-                if(s.exists()){ await updateDoc(ref,{current_stock:s.data().current_stock+qty}); updated++; }
-                else{ await setDoc(ref,{part_number:pNo||id,factory_id:activeFactory,description:desc,model:mod,location:loc,sequ_num:seq,current_stock:qty}); created++; }
+                if(s.exists()){ await updateDoc(ref,{current_stock:s.data().current_stock+qty, last_added_date: Timestamp.now()}); updated++; }
+                else{ await setDoc(ref,{part_number:pNo||id,factory_id:activeFactory,description:desc,model:mod,location:loc,sequ_num:seq,current_stock:qty, added_date: Timestamp.now(), last_added_date: Timestamp.now()}); created++; }
             }
         }
         alert(`Import complete!\nCreated: ${created}  Updated: ${updated}`);
@@ -1635,11 +1684,13 @@ window.importFromExcel = () => {
 window.performAdvSearch = () => {
     const m=document.getElementById('advModel').value.trim().toUpperCase();
     const p=document.getElementById('advPartNo').value.trim().toUpperCase();
+    const s=document.getElementById('advSeq').value.trim().toUpperCase();
     const d=document.getElementById('advDesc').value.trim().toUpperCase();
-    if(!m&&!p&&!d) return alert("Enter at least one criterion.");
+    if(!m&&!p&&!s&&!d) return alert("Enter at least one criterion.");
     const res=inventoryCache.filter(i=>
         (!m||(i.model||"").toUpperCase().includes(m))&&
         (!p||(i.part_number||"").toUpperCase().includes(p))&&
+        (!s||(i.sequ_num||"").toUpperCase().includes(s))&&
         (!d||(i.description||"").toUpperCase().includes(d))
     );
     renderAdvResults(res);
@@ -1662,7 +1713,7 @@ window.renderAdvResults = (data) => {
     });
 };
 window.clearAdvSearch = () => {
-    ['advModel','advPartNo','advDesc'].forEach(id=>document.getElementById(id).value="");
+    ['advModel','advPartNo','advSeq','advDesc'].forEach(id=>document.getElementById(id).value="");
     document.getElementById("advResCount").innerText="0 Found";
     document.querySelector("#advSearchTable tbody").innerHTML="<tr><td colspan='6' class='empty-state' style='padding:20px'>Enter criteria and click Search</td></tr>";
 };
@@ -1821,18 +1872,21 @@ window.searchStock = () => {
     const model = document.getElementById('stockFModel').value.trim().toUpperCase();
     const part  = document.getElementById('stockFPart').value.trim().toUpperCase();
     const loc   = document.getElementById('stockFLoc').value.trim().toUpperCase();
+    const seq   = document.getElementById('stockFSeq').value.trim().toUpperCase();
     const desc  = document.getElementById('stockFDesc').value.trim().toUpperCase();
-    if (!model && !part && !loc && !desc) { loadAllStock(); return; }
+    if (!model && !part && !loc && !seq && !desc) { loadAllStock(); return; }
     currentReportData = inventoryCache.filter(i =>
         (!model || (i.model||'').toUpperCase().includes(model)) &&
         (!part  || (i.part_number||'').toUpperCase().includes(part)) &&
         (!loc   || (i.location||'').toUpperCase().includes(loc)) &&
+        (!seq   || (i.sequ_num||'').toUpperCase().includes(seq)) &&
         (!desc  || (i.description||'').toUpperCase().includes(desc))
     );
     const parts = [];
     if (model) parts.push(`Model: "${model}"`);
     if (part)  parts.push(`Part: "${part}"`);
     if (loc)   parts.push(`Loc: "${loc}"`);
+    if (seq)   parts.push(`Seq: "${seq}"`);
     if (desc)  parts.push(`Desc: "${desc}"`);
     document.getElementById('stockFilterLabel').innerText = parts.length ? `— ${parts.join(', ')}` : '';
     document.getElementById('stockSearchInput').value = '';
@@ -1840,7 +1894,7 @@ window.searchStock = () => {
 };
 
 window.clearStockSearch = () => {
-    ['stockFModel','stockFPart','stockFLoc','stockFDesc','stockSearchInput'].forEach(id => document.getElementById(id).value = '');
+    ['stockFModel','stockFPart','stockFLoc','stockFSeq','stockFDesc','stockSearchInput'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('stockEmptyState').style.display = 'block';
     document.getElementById('stockTableWrap').style.display  = 'none';
     document.getElementById('stockResultBar').style.display  = 'none';
@@ -1861,7 +1915,7 @@ window.renderStockTable = (data) => {
     tb.innerHTML = '';
     document.getElementById('stockCount').innerText = data.length;
     if (!data.length) {
-        tb.innerHTML = `<tr><td colspan="7" class="empty-state" style="padding:28px"><span class="material-icons">search_off</span>No items match your search.</td></tr>`;
+        tb.innerHTML = `<tr><td colspan="8" class="empty-state" style="padding:28px"><span class="material-icons">search_off</span>No items match your search.</td></tr>`;
         return;
     }
     appendStockRows(data);
@@ -1882,12 +1936,13 @@ function appendStockRows(data) {
             <td class="mono" style="font-weight:700">${d.part_number}</td>
             <td>${d.description}</td>
             <td style="text-align:right;font-weight:800;color:${low?'var(--danger)':'var(--success)'}">${d.current_stock}</td>
+            <td>${fmtAnyDate(getStockAddDate(d))}</td>
             <td style="text-align:center">
                 <button class="btn btn-outline btn-sm" title="Edit this item"
                     onclick='requestEditPin("stock",${JSON.stringify({
                         docId:d.docId, part_number:d.part_number, location:d.location||"",
                         sequ_num:d.sequ_num||"", model:d.model||"", description:d.description||"",
-                        current_stock:d.current_stock, min_stock:d.min_stock??""
+                        current_stock:d.current_stock, min_stock:d.min_stock??"", added_date:d.added_date??null, last_added_date:d.last_added_date??null
                     }).replace(/'/g,"&#39;")})'>
                     <span class="material-icons" style="font-size:15px;color:var(--primary)">edit</span>
                 </button>
@@ -1899,7 +1954,7 @@ function appendStockRows(data) {
         const remaining = data.length - stockRenderOffset;
         const loadTr = document.createElement('tr');
         loadTr.className = 'load-more-row';
-        loadTr.innerHTML = `<td colspan="7" style="text-align:center;padding:12px">
+        loadTr.innerHTML = `<td colspan="8" style="text-align:center;padding:12px">
             <button class="btn btn-outline btn-sm" onclick="loadMoreStock()">
                 <span class="material-icons">expand_more</span> Load ${Math.min(remaining,STOCK_PAGE)} more &nbsp;(${remaining} remaining)
             </button></td>`;
@@ -1923,7 +1978,7 @@ window.filterStockReport = () => {
     tb.innerHTML = '';
     document.getElementById('stockCount').innerText = filtered.length;
     if (!filtered.length) {
-        tb.innerHTML = `<tr><td colspan="7" class="empty-state" style="padding:20px">No items match</td></tr>`;
+        tb.innerHTML = `<tr><td colspan="8" class="empty-state" style="padding:20px">No items match</td></tr>`;
         return;
     }
     appendStockRows(filtered);
@@ -1933,7 +1988,12 @@ let sortDir = 1;
 window.sortStock = (key) => {
     sortDir = -sortDir;
     currentReportData.sort((a,b) => {
-        if (key === 'current_stock') return (a[key]-b[key]) * sortDir;
+        if (key === 'current_stock') return ((a[key]||0)-(b[key]||0)) * sortDir;
+        if (key === 'last_added_date') {
+            const aTime = (() => { const v = getStockAddDate(a); return v && typeof v?.toDate === 'function' ? v.toDate().getTime() : (v ? new Date(v).getTime() : 0); })();
+            const bTime = (() => { const v = getStockAddDate(b); return v && typeof v?.toDate === 'function' ? v.toDate().getTime() : (v ? new Date(v).getTime() : 0); })();
+            return (aTime - bTime) * sortDir;
+        }
         return (a[key]||'').toString().localeCompare((b[key]||'').toString()) * sortDir;
     });
     stockRenderOffset = 0;
